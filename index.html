@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LatentGauge — Planning-Geometry Attacks in a Measure-Preserving Blind Spot</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%23167f85' stroke-width='2.4'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%23167f85' stroke-width='2'/%3E%3Cpath d='M16 3 C 18 9, 22 11, 29 13' fill='none' stroke='%23eb6834' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="description" content="LatentGauge: one shared Gaussian-measure-preserving map between a frozen latent world model and its planner keeps every prediction and the latent law intact, yet changes the planner's geometry, candidate rankings and CEM elite sets under a displacement budget.">
+<meta property="og:title" content="LatentGauge — Planning-Geometry Attacks in a Measure-Preserving Blind Spot">
+<meta property="og:description" content="Same prediction, same marginal, different ruler: a shared measure-preserving map that flips planner rankings under a displacement budget.">
+<style>
+:root{
+  color-scheme: light;
+  --page:#f9f9f7; --surface:#fcfcfb;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --baseline:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --accent:#167f85; --accent-deep:#0f6166; --accent-wash:rgba(22,127,133,.10);
+  --clean:#2a78d6; --mapped:#eb6834; --mapped-wash:rgba(235,104,52,.10);
+  --plus:#167f85; --minus:#536778;
+  --sans:system-ui,-apple-system,"Segoe UI","Noto Sans SC",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --serif:Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--sans);line-height:1.65;font-size:16.5px;overflow-x:hidden}
+a{color:var(--accent-deep)}
+.wrap{max-width:980px;margin:0 auto;padding:0 22px}
+.zh{display:none}
+body.lang-zh .zh{display:inline}
+body.lang-zh .en{display:none}
+body.lang-zh div.zh, body.lang-zh p.zh, body.lang-zh li.zh{display:block}
+.m{font-family:var(--serif);font-style:italic;white-space:nowrap}
+.m sub,.m sup{font-size:.72em}
+
+/* nav */
+nav{position:sticky;top:0;z-index:50;background:rgba(249,249,247,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--grid)}
+nav .wrap{display:flex;align-items:center;gap:18px;height:52px}
+nav .brand{font-weight:700;font-size:15px;letter-spacing:.2px;color:var(--ink);text-decoration:none;white-space:nowrap}
+nav .brand .fr{color:var(--accent)}
+nav .brand .gl{font-weight:400;color:var(--mapped)}
+nav .links{display:flex;gap:14px;margin-left:auto;align-items:center;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+nav .links::-webkit-scrollbar{display:none}
+nav .links a{font-size:13.5px;color:var(--ink-2);text-decoration:none}
+nav .links a:hover{color:var(--accent-deep)}
+.langbtn{flex:none;border:1px solid var(--baseline);background:var(--surface);color:var(--ink);border-radius:14px;padding:2px 11px;font:600 12.5px var(--sans);cursor:pointer}
+.langbtn:hover{border-color:var(--accent);color:var(--accent-deep)}
+
+/* hero */
+header{padding:40px 0 8px;text-align:center}
+h1{font-size:clamp(26px,4.6vw,40px);line-height:1.22;margin:12px auto 10px;max-width:900px;font-weight:800;letter-spacing:-.01em}
+h1 .accent{color:var(--accent)}
+.tagline{max-width:780px;margin:0 auto;color:var(--ink-2);font-size:clamp(15.5px,2vw,18px)}
+.authors{margin:16px auto 4px;color:var(--ink-2);font-size:14.5px;max-width:820px}
+.authors .sep{color:var(--baseline);padding:0 6px}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:26px 0 6px}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:22px;padding:9px 20px;font-size:14.5px;text-decoration:none;border:1px solid var(--ink);color:var(--ink);background:var(--surface);transition:transform .12s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.primary:hover{background:#222}
+.btn .ic{font-size:15px}
+
+/* hero canvas */
+.heroviz{margin:34px auto 0;max-width:920px;background:var(--surface);border:1px solid var(--grid);border-radius:14px;padding:10px 10px 4px;box-shadow:0 1px 3px rgba(11,11,11,.04)}
+.heroviz canvas{width:100%;height:auto;display:block;border-radius:8px}
+.heroviz .cap{font-size:12.5px;color:var(--muted);text-align:center;padding:6px 10px 8px}
+
+/* sections */
+section{padding:54px 0 6px}
+.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-deep);font-weight:700;margin-bottom:6px}
+.kicker .nt{text-transform:none}
+h2{font-size:clamp(21px,3vw,27px);margin:0 0 14px;letter-spacing:-.01em;line-height:1.3}
+h3{line-height:1.35}
+.lead{color:var(--ink-2);max-width:820px}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:22px}
+.card{background:var(--surface);border:1px solid var(--grid);border-radius:12px;padding:18px 18px 14px;position:relative}
+.card .no{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.card h3{margin:6px 0 8px;font-size:16.5px}
+.card p{margin:0;font-size:14px;color:var(--ink-2)}
+.card .pass{display:inline-block;margin-top:10px;font-size:12px;color:var(--ink-2);background:var(--page);border:1px solid var(--grid);border-radius:10px;padding:1px 9px}
+.card.ours{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.card.ours h3{color:var(--accent-deep)}
+.card.ours .pass{color:var(--ink);background:var(--mapped-wash);border-color:transparent}
+.qbox{margin-top:22px;border-left:3px solid var(--accent);background:var(--accent-wash);border-radius:0 10px 10px 0;padding:16px 20px;font-size:17px}
+.qbox b{color:var(--accent-deep)}
+
+/* method steps */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:22px}
+.step{background:var(--surface);border:1px solid var(--grid);border-radius:12px;padding:18px}
+.step .badge{display:inline-flex;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin-bottom:10px}
+.step h3{margin:0 0 8px;font-size:16px}
+.step p{margin:0;font-size:14px;color:var(--ink-2)}
+.step .tag{display:inline-block;margin-top:10px;font-size:12px;color:var(--accent-deep);background:var(--accent-wash);border-radius:10px;padding:2px 10px}
+.formulas{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:26px auto 0}
+.formula{text-align:center;background:var(--surface);border:1px solid var(--grid);border-radius:12px;padding:18px 16px}
+.formula .math{font-size:19px;font-family:var(--serif);font-style:italic;line-height:1.5}
+.formula .math sub,.formula .math sup{font-size:12px}
+.formula .note{font-size:13px;color:var(--muted);margin-top:8px}
+
+/* witness lab */
+.lab{margin-top:24px;background:var(--surface);border:1px solid var(--grid);border-radius:14px;padding:14px 14px 10px;box-shadow:0 1px 3px rgba(11,11,11,.04)}
+.labhead{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:2px 4px 12px}
+.labbadge{background:var(--accent);color:#fff;font-weight:700;font-size:12.5px;border-radius:12px;padding:3px 12px}
+.labhead input[type=range]{flex:1 1 220px;min-width:180px;accent-color:var(--mapped)}
+.labhead output{font-family:var(--mono);font-size:14px;min-width:92px;font-variant-numeric:tabular-nums}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.labbtn{border:1px solid var(--baseline);background:var(--surface);border-radius:15px;padding:3px 11px;font-size:12.5px;cursor:pointer;color:var(--ink-2);font-family:var(--sans)}
+.labbtn:hover,.labbtn[aria-pressed=true]{border-color:var(--accent);color:var(--accent-deep)}
+.labgrid{display:grid;grid-template-columns:1.08fr 1fr;grid-template-rows:auto auto;gap:12px}
+.panel{margin:0;border:1px solid var(--grid);border-radius:10px;padding:10px 10px 4px;background:var(--surface);min-width:0}
+.panel.tall{grid-row:1 / 3}
+.panel .ph{font-size:13px;font-weight:650;color:var(--ink);padding:0 2px}
+.panel .ps{font-size:12px;color:var(--muted);padding:0 2px 4px}
+.panel svg{width:100%;height:auto;display:block;touch-action:pan-y}
+.panel svg.drag{cursor:ew-resize}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-2);padding:2px 2px 6px}
+.legend .li{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px solid var(--clean)}
+.legend i.lq{border-top:2px dashed var(--mapped)}
+.legend i.ex{border-top:2.5px solid var(--mapped)}
+.legend b{font-weight:600}
+svg text{font-family:var(--sans);fill:var(--ink-2);font-size:12px}
+svg text.mut{fill:var(--muted);font-size:11px}
+svg text.ink{fill:var(--ink);font-weight:650;font-size:13px}
+svg text.tick{fill:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.ro{border:1px solid var(--grid);border-radius:10px;padding:9px 12px 8px;background:var(--surface)}
+.ro .label{font-size:12px;color:var(--ink-2)}
+.ro .value{font-size:21px;font-weight:650;letter-spacing:-.01em}
+.ro .sub{font-size:11.5px;color:var(--muted)}
+.verdict{margin:12px 2px 4px;font-size:14.5px;font-weight:600;display:grid;grid-template-columns:12px 1fr;column-gap:10px;align-items:baseline}
+.verdict .vk{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--baseline)}
+.verdict.rev .vk{background:var(--mapped)}
+.verdict.keep .vk{background:var(--clean)}
+.verdict .vs{grid-column:2;font-weight:400;color:var(--ink-2);font-size:13px}
+
+/* stat tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:24px}
+.tile{background:var(--surface);border:1px solid var(--grid);border-radius:12px;padding:16px 18px 14px}
+.tile .label{font-size:13px;color:var(--ink-2)}
+.tile .value{font-size:28px;font-weight:650;letter-spacing:-.01em;margin:2px 0;white-space:nowrap}
+.tile .value .from{font-size:15px;font-weight:400;color:var(--muted)}
+.tile .delta{font-size:13px;color:var(--accent-deep);font-weight:600}
+.tile .basis{font-size:12px;color:var(--muted);margin-top:2px}
+.tiles-note{font-size:13px;color:var(--muted);margin-top:12px}
+
+/* figure cards */
+.figcard{margin-top:22px;background:var(--surface);border:1px solid var(--grid);border-radius:14px;padding:18px 18px 12px}
+.figcard h3{margin:0 0 4px;font-size:16px}
+.figcard .sub{margin:0;font-size:13px;color:var(--ink-2)}
+
+/* dumbbell + dot plot (HTML) */
+.keys{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--ink-2);margin:12px 0 4px}
+.keys .ki{display:inline-flex;align-items:center;gap:7px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--clean);box-shadow:0 0 0 2px var(--surface)}
+.dot.dia{width:10px;height:10px;border-radius:2px;transform:rotate(45deg);background:var(--mapped)}
+.dot.gray{background:var(--ink-2)}
+.db{--cols:minmax(150px,230px) 1fr 140px;margin-top:6px}
+.db-row,.db-axis{display:grid;grid-template-columns:var(--cols);column-gap:16px;align-items:center}
+.db-axis .ax{grid-column:2;position:relative;height:22px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.db-axis .ax span{position:absolute;top:2px;transform:translateX(-50%)}
+.db-axis .ax span.u{transform:none;right:0;left:auto}
+.db-group{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:12px 0 2px;border-top:1px solid var(--grid);margin-top:4px}
+.db-row{border-radius:8px;outline:none}
+.db-row:hover,.db-row:focus-visible{background:var(--page)}
+.db-row:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+.db-label{font-size:14px;color:var(--ink);line-height:1.3;padding:7px 0 7px 4px}
+.db-label small{display:block;color:var(--muted);font-size:11.5px}
+.db-track{position:relative;height:30px;background-image:linear-gradient(to right,var(--grid) 1px,transparent 1px);background-size:calc(100% / 6) 100%;border-right:1px solid var(--grid)}
+.db-track.free{background-image:none;border-right:0}
+.db-track .gl{position:absolute;top:0;bottom:0;width:1px;background:var(--grid)}
+.db-line{position:absolute;top:50%;height:2px;margin-top:-1px;background:var(--baseline);border-radius:1px}
+.db-track .dot{position:absolute;top:50%;margin:-6px 0 0 -6px}
+.db-track .dot.dia{margin:-5px 0 0 -5px}
+.db-val{font-size:13.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;padding-right:4px}
+.db-val b{color:var(--ink);font-weight:650}
+.db-val .dl{display:block;font-size:11.5px;color:var(--muted)}
+
+/* tables */
+.tablewrap{overflow-x:auto;margin-top:12px;-webkit-overflow-scrolling:touch}
+table.data{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+table.data th,table.data td{padding:7px 10px;border-bottom:1px solid var(--grid);text-align:right;white-space:nowrap}
+table.data th:first-child,table.data td:first-child{text-align:left}
+table.data thead th{font-size:12px;color:var(--ink-2);font-weight:600;border-bottom:1px solid var(--baseline)}
+table.data tr.ours td{background:var(--accent-wash);font-weight:650}
+table.data td.l{text-align:left}
+table.data .grp th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding-top:12px}
+.tcap{font-size:12.5px;color:var(--muted);margin-top:8px}
+details.tv{margin-top:10px;font-size:13px}
+details.tv summary{cursor:pointer;color:var(--accent-deep);font-weight:600}
+details.tv .tablewrap{margin-top:6px}
+
+/* evidence */
+.evgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:14px;margin-top:22px}
+.ev.wide{grid-column:1 / -1}
+.ev{background:var(--surface);border:1px solid var(--grid);border-radius:12px;padding:18px;min-width:0}
+.ev h3{margin:0 0 6px;font-size:15.5px}
+.ev p{margin:8px 0 0;font-size:13.5px;color:var(--ink-2)}
+.ev .statrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ev .stat{flex:1 1 120px;border:1px solid var(--grid);border-radius:10px;padding:8px 12px}
+.ev .stat .v{font-size:22px;font-weight:650}
+.ev .stat .v small{font-size:13px;font-weight:400;color:var(--muted)}
+.ev .stat .k{font-size:12px;color:var(--ink-2)}
+.mini2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
+.mini2 svg{width:100%;height:auto;display:block}
+.mini2 .mt{font-size:12px;font-weight:600;color:var(--ink)}
+.ev.wide .mini2{max-width:760px}
+.dp{--cols:minmax(130px,190px) 1fr 132px;margin-top:10px;max-width:760px}
+
+/* deep-dive doors */
+.doors{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:22px}
+.door{border-radius:14px;padding:26px 24px;text-decoration:none;display:block;border:1px solid var(--grid);transition:transform .12s ease, box-shadow .12s ease}
+a.door:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(11,11,11,.08)}
+.door.dark{background:#14161d;color:#eef0f6;border-color:#14161d}
+.door.dark .meta{color:#9aa3b8}
+.door.light{background:var(--surface);color:var(--ink)}
+.door.light .meta{color:var(--muted)}
+.door h3{margin:0 0 8px;font-size:18px}
+.door p{margin:0 0 12px;font-size:14px;opacity:.9}
+.door .meta{font-size:12.5px}
+.door .arrow{float:right;font-size:20px}
+
+/* bibtex */
+.bibwrap{position:relative}
+pre.bib{background:#14161d;color:#dfe4f0;border-radius:12px;padding:18px 20px;font-family:var(--mono);font-size:12.8px;overflow-x:auto;line-height:1.55;margin:0}
+.copy{position:absolute;top:10px;right:10px;border:1px solid #3a3f4d;background:#1e2230;color:#dfe4f0;border-radius:12px;padding:2px 10px;font:12px var(--sans);cursor:pointer}
+.copy:hover{border-color:#6c7590}
+
+/* tooltip */
+.tip{position:fixed;z-index:80;pointer-events:none;display:none;background:var(--surface);border:1px solid var(--grid);box-shadow:0 4px 16px rgba(11,11,11,.12);border-radius:10px;padding:8px 11px;font-size:12.5px;color:var(--ink-2);max-width:280px;line-height:1.5}
+.tip .tt{font-weight:600;color:var(--ink);margin-bottom:2px}
+.tip .tk{display:inline-block;width:12px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.tip b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+footer{margin-top:64px;border-top:1px solid var(--grid);padding:26px 0 40px;font-size:13px;color:var(--muted);text-align:center}
+footer a{color:var(--ink-2)}
+
+@media (max-width:860px){
+  .labgrid{grid-template-columns:1fr}
+  .panel.tall{grid-row:auto}
+}
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  nav .wrap{gap:12px}
+  header{padding-top:36px}
+  .db{--cols:1fr 116px}
+  .db .db-label{grid-column:1 / -1;padding-bottom:0}
+  .db-axis .ax{grid-column:1}
+  .dp{--cols:1fr 98px}
+  .dp .db-label{grid-column:1 / -1;padding-bottom:0}
+  .mini2{grid-template-columns:1fr}
+  .tile .value{font-size:26px}
+}
+</style>
+</head>
+<body>
+<script>
+try{var lgq=new URLSearchParams(location.search).get('lang'),lgs=null;try{lgs=localStorage.getItem('lg-home-lang')}catch(e){}
+if(lgq==='zh'||(lgq!=='en'&&lgs==='zh')){document.body.classList.add('lang-zh');document.documentElement.lang='zh-CN'}}catch(e){}
+</script>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">Latent<span class="fr">Gauge</span> <span class="gl">◎</span></a>
+    <div class="links">
+      <a href="#problem"><span class="en">Blind spot</span><span class="zh">盲区</span></a>
+      <a href="#method"><span class="en">Method</span><span class="zh">方法</span></a>
+      <a href="#lab"><span class="en">Witness</span><span class="zh">见证</span></a>
+      <a href="#results"><span class="en">Results</span><span class="zh">结果</span></a>
+      <a href="#evidence"><span class="en">Checks</span><span class="zh">检验</span></a>
+      <a href="#explore"><span class="en">Deep dive</span><span class="zh">深入</span></a>
+      <a href="#bibtex">BibTeX</a>
+    </div>
+    <button class="langbtn" id="langBtn" type="button" aria-label="切换到中文">中文</button>
+  </div>
+</nav>
+
+<header id="top" class="wrap">
+  <h1>LatentGauge<span class="accent">:</span>
+    <span class="en">planning-geometry attacks in a <span class="accent">measure-preserving</span> blind&nbsp;spot</span>
+    <span class="zh">测度保持盲区中的<span class="accent">规划几何</span>攻击</span>
+  </h1>
+  <p class="tagline">
+    <span class="en">Latent world models plan by comparing imagined futures with an encoded goal. Prediction accuracy and a Gaussian latent law constrain the representation, but not the geometry handed to the planner's scorer. LatentGauge fits one shared, Gaussian-measure-preserving radial map after frozen prediction: every rollout and the latent law stay exact, while candidate rankings and CEM elite sets change under a displacement budget.</span>
+    <span class="zh">潜空间世界模型通过比较想象的未来与编码后的目标来规划。预测精度与高斯潜变量分布约束了表示，却约束不了交给规划器打分的几何。LatentGauge 在冻结预测之后拟合一个共享的、保持高斯测度的径向映射：每条 rollout 与潜变量分布都严格不变，候选排序与 CEM 精英集却在位移预算之内被改写。</span>
+  </p>
+  <p class="authors"><strong>New York University<span class="sep">·</span>Cornell University<span class="sep">·</span>Massachusetts Institute of Technology<span class="sep">·</span>Brown University</strong></p>
+  <div class="btns">
+    <a class="btn primary" href="https://crcr0.github.io/LatentGauge/"><span class="ic">📖</span> <span class="en">Interactive story</span><span class="zh">交互式讲解</span></a>
+    <a class="btn primary" href="#lab"><span class="ic">🧪</span> <span class="en">Witness lab</span><span class="zh">见证实验室</span></a>
+    <a class="btn" href="#bibtex"><span class="ic">❝</span> BibTeX</a>
+  </div>
+
+  <div class="heroviz">
+    <canvas id="hero" width="1760" height="520" role="img" aria-label="Animated diagram: a frozen world model produces fixed endpoints; LatentGauge rotates each Gaussian shell by its own angle; the planner's two candidate costs swap order while the displacement stays inside the budget."></canvas>
+    <div class="cap">
+      <span class="en">The paper's exact canonical witness (goal z<sup>g</sup> = (1, 0), a⁺ = (1, 0.5), a⁻ = (1.64, 0)). The frozen world model's endpoints never change. LatentGauge rotates each Gaussian shell by its own angle τα(‖z‖²): radii and the latent law are preserved and the goal shell stays fixed (α(1) = 0), yet the scorer's ruler shears. At τ = 1 the planner's preference flips from a⁺ to a⁻ with displacement 0.00455 &lt; ε² = 0.0049.</span>
+      <span class="zh">论文中的精确典型见证（目标 z<sup>g</sup> = (1, 0)，a⁺ = (1, 0.5)，a⁻ = (1.64, 0)）。冻结世界模型给出的终点从不改变。LatentGauge 让每个高斯壳层按各自的角度 τα(‖z‖²) 旋转：半径与潜变量分布保持不变，目标所在壳层固定不动（α(1) = 0），打分器的“尺子”却发生剪切。τ = 1 时规划器的偏好从 a⁺ 翻转为 a⁻，位移 0.00455 &lt; ε² = 0.0049。</span>
+    </div>
+  </div>
+</header>
+
+<section class="wrap" id="problem">
+  <div class="kicker"><span class="en">The blind spot</span><span class="zh">盲区</span></div>
+  <h2><span class="en">Every standard check passes, and the planner's ruler still moves</span><span class="zh">各项常规检查全部通过，规划器的尺子却变了</span></h2>
+  <p class="lead">
+    <span class="en">Three properties are usually taken to pin down a latent world model's representation. A shared coordinate change between frozen prediction and the scorer can satisfy all three at once:</span>
+    <span class="zh">通常认为，三项性质足以确定潜空间世界模型的表示。而在冻结预测与打分器之间插入一个共享坐标变换，可以同时满足这三项：</span>
+  </p>
+  <div class="cards">
+    <div class="card">
+      <span class="no"><span class="en">① Prediction</span><span class="zh">① 预测</span></span>
+      <h3><span class="en">Exact prediction retained</span><span class="zh">预测严格保持</span></h3>
+      <p><span class="en">A conjugated pair <span class="m">h̃ = T∘h, F̃ = T∘F∘T<sup>−1</sup></span> keeps zero prediction risk; fixed-action rollouts deliver the same endpoints.</span><span class="zh">共轭对 <span class="m">h̃ = T∘h, F̃ = T∘F∘T<sup>−1</sup></span> 保持零预测风险；固定动作的 rollout 给出完全相同的终点。</span></p>
+      <span class="pass">✓ <span class="en">check passes</span><span class="zh">检查通过</span></span>
+    </div>
+    <div class="card">
+      <span class="no"><span class="en">② Latent law</span><span class="zh">② 潜变量分布</span></span>
+      <h3><span class="en">Gaussian marginal preserved</span><span class="zh">高斯边缘分布不变</span></h3>
+      <p><span class="en"><span class="m">T<sub>#</sub>γ = γ</span> exactly. The controlled Gaussian diagnostic reads 0.40853 clean and 0.40910 mapped, within clean resampling variability.</span><span class="zh"><span class="m">T<sub>#</sub>γ = γ</span> 严格成立。受控高斯诊断的均值为 0.40853（干净）与 0.40910（映射后），落在干净样本的重采样波动之内。</span></p>
+      <span class="pass">✓ <span class="en">check passes</span><span class="zh">检查通过</span></span>
+    </div>
+    <div class="card">
+      <span class="no"><span class="en">③ Movement</span><span class="zh">③ 位移</span></span>
+      <h3><span class="en">Displacement within budget</span><span class="zh">位移在预算之内</span></h3>
+      <p><span class="en"><span class="m">E‖T(Z) − Z‖² ≤ ε²</span>. Yet at matched displacement, local distortion <span class="m">‖G<sub>T</sub> − I‖<sub>F</sub></span> still ranges from 0.41 to 5.6 × 10⁴.</span><span class="zh"><span class="m">E‖T(Z) − Z‖² ≤ ε²</span>。但在位移相同的条件下，局部形变 <span class="m">‖G<sub>T</sub> − I‖<sub>F</sub></span> 仍可从 0.41 变到 5.6 × 10⁴。</span></p>
+      <span class="pass">✓ <span class="en">check passes</span><span class="zh">检查通过</span></span>
+    </div>
+    <div class="card ours">
+      <span class="no">— LatentGauge</span>
+      <h3><span class="en">The planner's metric changes</span><span class="zh">规划器的度量被改写</span></h3>
+      <p><span class="en"><span class="m">G<sub>T</sub> = DT<sup>⊤</sup>DT</span> enters the action-side Gauss–Newton matrix <span class="m">2J<sup>⊤</sup>G<sub>T</sub>J</span>. Endpoint–goal distances, candidate rankings and CEM elite sets all move.</span><span class="zh"><span class="m">G<sub>T</sub> = DT<sup>⊤</sup>DT</span> 进入动作侧 Gauss–Newton 矩阵 <span class="m">2J<sup>⊤</sup>G<sub>T</sub>J</span>。终点到目标的距离、候选排序、CEM 精英集随之改变。</span></p>
+      <span class="pass"><span class="en">what the planner actually uses</span><span class="zh">规划器真正使用的量</span></span>
+    </div>
+  </div>
+  <div class="qbox">
+    <span class="en"><b>Core question.</b> Which shared coordinate changes alter planning selection and updates while preserving the latent target law under a displacement budget?</span>
+    <span class="zh"><b>核心问题：</b>在位移预算下、保持潜变量目标分布不变的前提下，哪些共享坐标变换会改变规划的选择与更新？</span>
+  </div>
+</section>
+
+<section class="wrap" id="method">
+  <div class="kicker"><span class="en">Method · LatentGauge</span><span class="zh">方法 · LatentGauge</span></div>
+  <h2><span class="en">One shared map, fitted at the planner's own decision boundary</span><span class="zh">一个共享映射，在规划器自己的决策边界上拟合</span></h2>
+  <p class="lead">
+    <span class="en"><b>Threat model.</b> The attacker reads calibration endpoints and goals and fits one shared differentiable bijection <i>after</i> prediction. The encoder, predictor, observations, goal input and scalar scorer stay fixed, and the map is reused across test goals, candidates and planning calls. Fixed-action rollouts are unchanged; later CEM proposals and MPC actions may change.</span>
+    <span class="zh"><b>威胁模型：</b>攻击者读取校准用的终点与目标，在预测<i>之后</i>拟合一个共享的可微双射。编码器、预测器、观测、目标输入与标量打分器全部固定；同一映射在所有测试目标、候选与规划调用中复用。固定动作的 rollout 不变；之后的 CEM 提议与 MPC 动作可能改变。</span>
+  </p>
+  <div class="steps">
+    <div class="step">
+      <span class="badge">1</span>
+      <h3><span class="en">Conservation fixes the form</span><span class="zh">守恒决定形式</span></h3>
+      <p><span class="en">Gaussian probability conservation requires <span class="m">div v − z<sup>⊤</sup>v = 0</span>. A radius-dependent rotation <span class="m">T<sub>c</sub>(z) = e<sup>α<sub>c</sub>(‖z‖²)A</sup>z</span> with skew <span class="m">A</span> satisfies it and integrates in closed form; shell-dependent angles create the shear that changes geometry.</span><span class="zh">高斯概率守恒要求 <span class="m">div v − z<sup>⊤</sup>v = 0</span>。半径相关的旋转 <span class="m">T<sub>c</sub>(z) = e<sup>α<sub>c</sub>(‖z‖²)A</sup>z</span>（<span class="m">A</span> 反对称）满足这一条件，并有闭式积分；随壳层变化的角度产生剪切，从而改变几何。</span></p>
+      <span class="tag"><span class="en">what is admissible</span><span class="zh">什么是允许的</span></span>
+    </div>
+    <div class="step">
+      <span class="badge">2</span>
+      <h3><span class="en">The native CEM boundary calibrates</span><span class="zh">原生 CEM 边界负责校准</span></h3>
+      <p><span class="en">Adjacent candidates across the elite boundary (clean ranks <i>k</i> and <i>k</i>+1) form calibration triples. Their radii become kernel sites: <span class="m">α<sub>c</sub>(s) = Σ<sub>j</sub> c<sub>j</sub>K(s, s<sub>j</sub>)</span> extends the phases to every radius, and the leading block of the skew first variation selects the plane <span class="m">A</span>.</span><span class="zh">精英边界两侧相邻的候选（干净排名第 <i>k</i> 与第 <i>k</i>+1）构成校准三元组。它们的半径成为核位点：<span class="m">α<sub>c</sub>(s) = Σ<sub>j</sub> c<sub>j</sub>K(s, s<sub>j</sub>)</span> 把相位延拓到所有半径，偏斜一阶变分的主块选出平面 <span class="m">A</span>。</span></p>
+      <span class="tag"><span class="en">where to push</span><span class="zh">往哪里推</span></span>
+    </div>
+    <div class="step">
+      <span class="badge">3</span>
+      <h3><span class="en">Exact scores drive the fit</span><span class="zh">精确分数驱动拟合</span></h3>
+      <p><span class="en">Minimize the mean softplus of mapped boundary margins subject to <span class="m">D<sub>min</sub>(c) ≤ ε²</span>, with feasible trust-region SQP from the identity. A score-invariant common rotation is removed exactly: <span class="m">b* = −arg M<sub>c</sub></span>, <span class="m">D<sub>min</sub> = 4(1 − |M<sub>c</sub>|)</span>.</span><span class="zh">在 <span class="m">D<sub>min</sub>(c) ≤ ε²</span> 约束下最小化映射后边界间隔的平均 softplus，从恒等映射出发，用可行信赖域 SQP 求解。不改变分数的公共旋转被精确去除：<span class="m">b* = −arg M<sub>c</sub></span>，<span class="m">D<sub>min</sub> = 4(1 − |M<sub>c</sub>|)</span>。</span></p>
+      <span class="tag"><span class="en">how far to go</span><span class="zh">推多远</span></span>
+    </div>
+  </div>
+  <div class="formulas">
+    <div class="formula">
+      <div class="math">C<sub>T</sub>(a) − C(a) = 2 z<sub>H</sub><sup>⊤</sup>[ I − e<sup>ΔαA</sup> ] z<sub>g</sub></div>
+      <div class="note"><span class="en">exact cost shift, with Δα = α<sub>c</sub>(‖z<sub>g</sub>‖²) − α<sub>c</sub>(‖z<sub>H</sub>‖²). Equal endpoint and goal radii give zero shift; a common angle leaves every score unchanged.</span><span class="zh">精确代价偏移，Δα = α<sub>c</sub>(‖z<sub>g</sub>‖²) − α<sub>c</sub>(‖z<sub>H</sub>‖²)。终点与目标半径相同则偏移为零；公共角度不改变任何分数。</span></div>
+    </div>
+    <div class="formula">
+      <div class="math">H<sub>T</sub><sup>GN</sup> = 2 J<sup>⊤</sup> G<sub>T</sub>(Φ(a)) J</div>
+      <div class="note"><span class="en">the map inserts a position-dependent metric between the frozen rollout Jacobian and its transpose. At inference the fitted map is fixed, and native CEM proposals and MPC actions respond to its scores.</span><span class="zh">映射在冻结 rollout 的 Jacobian 与其转置之间插入一个随位置变化的度量。推理时拟合好的映射固定不变，原生 CEM 提议与 MPC 动作对它给出的分数作出响应。</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="lab">
+  <div class="kicker"><span class="en">Exact witness · interactive</span><span class="zh">精确见证 · 可交互</span></div>
+  <h2><span class="en">Drag τ: same endpoints, same law, reversed ranking</span><span class="zh">拖动 τ：终点不变、分布不变，排序反转</span></h2>
+  <p class="lead">
+    <span class="en">The paper's canonical witness, computed live in your browser from the closed-form map <span class="m">α(s) = 0.22[e<sup>−((s−1.25)/0.185)²</sup> − e<sup>−((1−1.25)/0.185)²</sup>]</span>, <span class="m">T<sub>τ</sub>(z) = e<sup>τα(‖z‖²)A</sup>z</span>. The endpoints and the goal never move. Only the scorer's coordinates change.</span>
+    <span class="zh">论文中的典型见证，由闭式映射 <span class="m">α(s) = 0.22[e<sup>−((s−1.25)/0.185)²</sup> − e<sup>−((1−1.25)/0.185)²</sup>]</span>、<span class="m">T<sub>τ</sub>(z) = e<sup>τα(‖z‖²)A</sup>z</span> 在浏览器中实时计算。终点与目标从不移动，改变的只是打分器的坐标。</span>
+  </p>
+  <div class="lab">
+    <div class="labhead">
+      <span class="labbadge">τ</span>
+      <input type="range" id="tau" min="0" max="1.15" step="0.001" value="1" aria-label="Profile scale tau">
+      <output id="tauOut" for="tau">τ = 1.000</output>
+      <div class="presets">
+        <button class="labbtn" type="button" data-tau="0"><span class="en">τ = 0 · clean</span><span class="zh">τ = 0 · 干净</span></button>
+        <button class="labbtn" type="button" data-tau="flip"><span class="en">τ* · tie</span><span class="zh">τ* · 平局</span></button>
+        <button class="labbtn" type="button" data-tau="1"><span class="en">τ = 1 · paper</span><span class="zh">τ = 1 · 论文</span></button>
+        <button class="labbtn" type="button" data-tau="budget"><span class="en">budget edge</span><span class="zh">预算边界</span></button>
+        <button class="labbtn" type="button" id="labPlay"><span class="en">▶ Sweep</span><span class="zh">▶ 扫描</span></button>
+      </div>
+    </div>
+    <div class="labgrid">
+      <figure class="panel tall">
+        <figcaption class="ph"><span class="en">(a) Clean coordinates · cost contours at level 0.44</span><span class="zh">(a) 干净坐标 · 0.44 等代价线</span></figcaption>
+        <div class="legend">
+          <span class="li"><i></i><span class="en">clean</span><span class="zh">干净</span></span>
+          <span class="li"><i class="lq"></i><span class="en">local quadratic</span><span class="zh">局部二次近似</span></span>
+          <span class="li"><i class="ex"></i><span class="en">exact mapped</span><span class="zh">精确映射后</span></span>
+        </div>
+        <svg id="labA" viewBox="0 0 420 470" role="img" aria-label="Cost contours around the goal in clean coordinates"></svg>
+      </figure>
+      <figure class="panel">
+        <figcaption class="ph"><span class="en">(b) Ranking margin m<sub>τ</sub> = C<sub>T</sub>(a⁻) − C<sub>T</sub>(a⁺)</span><span class="zh">(b) 排序间隔 m<sub>τ</sub> = C<sub>T</sub>(a⁻) − C<sub>T</sub>(a⁺)</span></figcaption>
+        <div class="ps"><span class="en">drag on the chart to set τ</span><span class="zh">在图上拖动即可设置 τ</span></div>
+        <svg id="labB" class="drag" viewBox="0 0 420 250" role="img" aria-label="Ranking margin as a function of tau"></svg>
+      </figure>
+      <figure class="panel">
+        <figcaption class="ph"><span class="en">(c) Displacement D<sub>γ</sub>(T<sub>τ</sub>) against the budget ε² = 0.07²</span><span class="zh">(c) 位移 D<sub>γ</sub>(T<sub>τ</sub>) 与预算 ε² = 0.07²</span></figcaption>
+        <div class="ps"><span class="en">shaded: strict reversal within budget</span><span class="zh">阴影：预算内的严格反转</span></div>
+        <svg id="labC" class="drag" viewBox="0 0 420 250" role="img" aria-label="Displacement as a function of tau with the budget line"></svg>
+      </figure>
+    </div>
+    <div class="readouts" id="labRead"></div>
+    <div class="verdict" id="labVerdict"><span class="vk"></span><span class="vt"></span><span class="vs"></span></div>
+    <details class="tv">
+      <summary><span class="en">Table view · exact values at key τ</span><span class="zh">表格视图 · 关键 τ 的精确值</span></summary>
+      <div class="tablewrap"><table class="data" id="labTable"></table></div>
+    </details>
+  </div>
+  <p class="tiles-note">
+    <span class="en">Matches Figure 4 of the paper: the fixed-candidate margin crosses zero at τ* = 0.765739, and independent integration gives D<sub>γ</sub>(T<sub>1</sub>) = 0.004548694 &lt; 0.0049. Panel (a) also shows the goal's local metric: its conditioning grows from 1 (clean) to 7.29695 at τ = 1.</span>
+    <span class="zh">与论文图 4 一致：固定候选的间隔在 τ* = 0.765739 处过零，独立积分给出 D<sub>γ</sub>(T<sub>1</sub>) = 0.004548694 &lt; 0.0049。(a) 图同时显示目标点的局部度量：其条件数从 1（干净）增长到 τ = 1 时的 7.29695。</span>
+  </p>
+</section>
+
+<section class="wrap" id="results">
+  <div class="kicker"><span class="en">Results · checkpoint victims, <span class="nt">ε</span> = 0.07</span><span class="zh">结果 · 检查点受害模型，<span class="nt">ε</span> = 0.07</span></div>
+  <h2><span class="en">One shared map degrades planning across three protocol families</span><span class="zh">一个共享映射，在三类协议上削弱规划</span></h2>
+  <div class="tiles">
+    <div class="tile">
+      <div class="label"><span class="en">Residual success · LeWM / PushT (CEM)</span><span class="zh">残余成功率 · LeWM / PushT（CEM）</span></div>
+      <div class="value"><span class="from">96% →</span> 62.40%</div>
+      <div class="delta"><span class="en">−15.36 pts vs equal-budget random-direction search</span><span class="zh">比同预算随机方向搜索低 15.36 pts</span></div>
+      <div class="basis"><span class="en">identity and orthogonal Q both stay at 96%</span><span class="zh">恒等映射与正交 Q 均保持 96%</span></div>
+    </div>
+    <div class="tile">
+      <div class="label"><span class="en">Residual success · DINO+TS / PushT (GD/MPC)</span><span class="zh">残余成功率 · DINO+TS / PushT（GD/MPC）</span></div>
+      <div class="value"><span class="from">85.33% →</span> 58.02%</div>
+      <div class="delta"><span class="en">−12.80 pts vs random-direction search</span><span class="zh">比随机方向搜索低 12.80 pts</span></div>
+      <div class="basis"><span class="en">straightened spatial DINO + projector</span><span class="zh">经时间拉直的空间 DINO + projector</span></div>
+    </div>
+    <div class="tile">
+      <div class="label"><span class="en">Top-one FlipRate</span><span class="zh">Top-1 翻转率</span></div>
+      <div class="value"><span class="from">0% →</span> 56%</div>
+      <div class="delta"><span class="en">50% on DINO+TS / PushT</span><span class="zh">DINO+TS / PushT 上为 50%</span></div>
+      <div class="basis"><span class="en">orthogonal Q control: 0% on both</span><span class="zh">正交 Q 对照：两者均为 0%</span></div>
+    </div>
+    <div class="tile">
+      <div class="label"><span class="en">Elite replacement · native CEM</span><span class="zh">精英替换率 · 原生 CEM</span></div>
+      <div class="value"><span class="from">9% →</span> 22%</div>
+      <div class="delta"><span class="en">elite-boundary vs top-one calibration</span><span class="zh">精英边界校准 vs top-1 校准</span></div>
+      <div class="basis"><span class="en">residual SR 71.04% → 62.40% (LeWM / PushT)</span><span class="zh">残余 SR 71.04% → 62.40%（LeWM / PushT）</span></div>
+    </div>
+  </div>
+  <p class="tiles-note">
+    <span class="en">Shared-interface comparison under matched protocols (paper Table 2). Every map preserves the exact Gaussian law; the random controls share LatentGauge's calibration plane, kernel coordinates, nonlinear budget correction and 3,000-call allowance. Checkpoint protocol: 50 held-out goal pairs, three attack-calibration seeds, 1,024 cached legal action sequences per goal.</span>
+    <span class="zh">匹配协议下的共享接口对比（论文表 2）。所有映射都严格保持高斯分布；随机对照与 LatentGauge 共用校准平面、核坐标、非线性预算修正与 3,000 次调用额度。检查点协议：50 个留出目标对、3 个攻击校准种子、每个目标缓存 1,024 条合法动作序列。</span>
+  </p>
+
+  <div class="figcard">
+    <h3><span class="en">Task success before and after one shared map</span><span class="zh">施加共享映射前后的任务成功率</span></h3>
+    <p class="sub"><span class="en">Mean success over the four tasks of each protocol (%). Clean rows are the published source numbers (DINO-WM Tables 1–2, Temporal Straightening Table 1, LeWorldModel Fig. 6); + LatentGauge rows are residual success under the shared map (paper Table 1). Hover or focus a row for per-task values.</span><span class="zh">每个协议四个任务的平均成功率（%）。干净行为原论文发表的数值（DINO-WM 表 1–2、Temporal Straightening 表 1、LeWorldModel 图 6）；+ LatentGauge 行为共享映射下的残余成功率（论文表 1）。悬停或聚焦某一行可查看各任务数值。</span></p>
+    <div class="keys">
+      <span class="ki"><i class="dot"></i><span class="en">clean (published)</span><span class="zh">干净（已发表）</span></span>
+      <span class="ki"><i class="dot dia"></i><span class="en">+ LatentGauge (residual)</span><span class="zh">+ LatentGauge（残余）</span></span>
+    </div>
+    <div class="db" id="dumbbell"></div>
+    <details class="tv">
+      <summary><span class="en">Table view · per-task success (%)</span><span class="zh">表格视图 · 各任务成功率（%）</span></summary>
+      <div class="tablewrap"><table class="data" id="dbTable"></table></div>
+    </details>
+  </div>
+
+  <div class="figcard">
+    <h3><span class="en">Shared-map controls under matched victim protocols</span><span class="zh">匹配受害协议下的共享映射对照</span></h3>
+    <div class="tablewrap">
+      <table class="data">
+        <thead>
+          <tr><th></th><th><span class="en">Exact γ law</span><span class="zh">严格 γ 分布</span></th><th colspan="3" style="text-align:center">LeWM / PushT (CEM)</th><th colspan="3" style="text-align:center">DINO+TS / PushT (GD/MPC)</th></tr>
+          <tr><th><span class="en">Shared map</span><span class="zh">共享映射</span></th><th></th><th>SR ↓</th><th>Flip ↑</th><th>TPR ↓</th><th>SR ↓</th><th>Flip ↑</th><th>TPR ↓</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="en">Identity</span><span class="zh">恒等</span></td><td><span class="en">Yes</span><span class="zh">是</span></td><td>96</td><td>0</td><td>1</td><td>85.33</td><td>0</td><td>1</td></tr>
+          <tr><td><span class="en">Orthogonal Q</span><span class="zh">正交 Q</span></td><td><span class="en">Yes</span><span class="zh">是</span></td><td>96</td><td>0</td><td>8</td><td>85.33</td><td>0</td><td>10</td></tr>
+          <tr><td><span class="en">Random kernel profile</span><span class="zh">随机核剖面</span></td><td><span class="en">Yes</span><span class="zh">是</span></td><td>88.32</td><td>14</td><td>12</td><td>79.36</td><td>12</td><td>14</td></tr>
+          <tr><td><span class="en">Random-direction search</span><span class="zh">随机方向搜索</span></td><td><span class="en">Yes</span><span class="zh">是</span></td><td>77.76</td><td>32</td><td>13</td><td>70.82</td><td>29</td><td>15</td></tr>
+          <tr class="ours"><td>LatentGauge (pairwise)</td><td><span class="en">Yes</span><span class="zh">是</span></td><td>62.40</td><td>56</td><td>15</td><td>58.02</td><td>50</td><td>18</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tcap"><span class="en">Paper Table 2A. SR: residual task success; Flip: fixed-bank top-one replay reversal; TPR: learned-feature two-sample detection at nominal 1% FPR. All percentages. All kernel-profile rows share the calibration-defined plane.</span><span class="zh">论文表 2A。SR：残余任务成功率；Flip：固定候选库 top-1 重放的反转率；TPR：名义 1% 假阳性率下基于学习特征的双样本检测真阳性率。均为百分比。所有核剖面行共用校准得到的平面。</span></p>
+    <div class="tablewrap">
+      <table class="data">
+        <thead>
+          <tr><th><span class="en">Calibration rule · LeWM / PushT / native CEM</span><span class="zh">校准规则 · LeWM / PushT / 原生 CEM</span></th><th><span class="en">Boundary flip (%) ↑</span><span class="zh">边界翻转（%）↑</span></th><th><span class="en">Elite repl. (%) ↑</span><span class="zh">精英替换（%）↑</span></th><th><span class="en">Mean shift ↑</span><span class="zh">均值偏移 ↑</span></th><th><span class="en">Action diff. ↑</span><span class="zh">动作差异 ↑</span></th><th>SR (%) ↓</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="en">Top-one</span><span class="zh">Top-1</span></td><td>28</td><td>9</td><td>0.041</td><td>0.028</td><td>71.04</td></tr>
+          <tr class="ours"><td><span class="en">Elite boundary</span><span class="zh">精英边界</span></td><td>56</td><td>22</td><td>0.093</td><td>0.063</td><td>62.40</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tcap"><span class="en">Paper Table 2B. Both rules use the same pools, native elite count, ε = 0.07 and 3,000-call allowance; each rule determines its own triples, plane and kernel.</span><span class="zh">论文表 2B。两种规则使用相同的候选池、原生精英数、ε = 0.07 与 3,000 次调用额度；各自确定自己的三元组、平面与核。</span></p>
+  </div>
+</section>
+
+<section class="wrap" id="evidence">
+  <div class="kicker"><span class="en">Controlled mechanism checks</span><span class="zh">受控机制检验</span></div>
+  <h2><span class="en">Why it works, and exactly when it cannot</span><span class="zh">为什么有效，以及何时严格无效</span></h2>
+  <p class="lead"><span class="en">Fixed-model calculations isolate each link of the chain, from distribution to geometry to selection to native updates.</span><span class="zh">固定模型上的计算把链条的每一环分开检验：分布、几何、选择、原生更新。</span></p>
+  <div class="evgrid">
+    <div class="ev">
+      <h3><span class="en">Selection depends on the inclusion boundary</span><span class="zh">选择取决于入选边界</span></h3>
+      <div class="tablewrap">
+        <table class="data">
+          <thead><tr><th><span class="en">Score swap (k = 3)</span><span class="zh">分数交换（k = 3）</span></th><th><span class="en">Replaced</span><span class="zh">被替换</span></th><th><span class="en">Mean shift</span><span class="zh">均值偏移</span></th><th><span class="en">Cov. shift</span><span class="zh">协方差偏移</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="en">Within elite</span><span class="zh">精英集内部</span></td><td>0.00%</td><td>0.000000</td><td>0.000000</td></tr>
+            <tr class="ours"><td><span class="en">Across boundary</span><span class="zh">跨越边界</span></td><td>33.33%</td><td>0.360555</td><td>0.405161</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="statrow">
+        <div class="stat"><div class="v">476 <small>/ 512</small></div><div class="k"><span class="en">coupled CEM rounds with different elite sets under the radial map</span><span class="zh">径向映射下精英集不同的耦合 CEM 轮次</span></div></div>
+        <div class="stat"><div class="v">0 <small>/ 512</small></div><div class="k"><span class="en">under identity or a 0.7-rad common rotation</span><span class="zh">恒等映射或 0.7 rad 公共旋转下</span></div></div>
+      </div>
+      <p><span class="en">Six fixed candidates: reordering inside the elite set leaves the fitted moments untouched, while one swap across the boundary changes the fitting sample. Over 1,536 checked rounds every propagation envelope held; the maximum same-pool update-identity residual is 2.39 × 10⁻¹⁶.</span><span class="zh">六个固定候选：精英集内部重排不改变拟合矩，跨越边界的一次交换就改变拟合样本。在检查的 1,536 轮中所有传播包络均成立；同池更新恒等式的最大残差为 2.39 × 10⁻¹⁶。</span></p>
+    </div>
+    <div class="ev">
+      <h3><span class="en">Exact negative controls</span><span class="zh">精确的负对照</span></h3>
+      <div class="tablewrap">
+        <table class="data">
+          <thead><tr><th><span class="en">Scoring interface</span><span class="zh">打分接口</span></th><th><span class="en">Clean margin</span><span class="zh">干净间隔</span></th><th><span class="en">Mapped margin</span><span class="zh">映射后间隔</span></th><th><span class="en">Ordering</span><span class="zh">排序</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="en">Identity</span><span class="zh">恒等</span></td><td>0.159600</td><td>0.159600</td><td class="l"><span class="en">preserved</span><span class="zh">保持</span></td></tr>
+            <tr><td><span class="en">Shared rotation, 0.7 rad</span><span class="zh">公共旋转 0.7 rad</span></td><td>0.159600</td><td>0.159600</td><td class="l"><span class="en">preserved</span><span class="zh">保持</span></td></tr>
+            <tr class="ours"><td><span class="en">Radial map T₁</span><span class="zh">径向映射 T₁</span></td><td>0.159600</td><td>−0.055839</td><td class="l"><span class="en">reversed</span><span class="zh">反转</span></td></tr>
+            <tr><td><span class="en">Normalize before T₁</span><span class="zh">先归一化再 T₁</span></td><td>−0.105573</td><td>−0.105573</td><td class="l"><span class="en">preserved</span><span class="zh">保持</span></td></tr>
+            <tr><td><span class="en">Normalize after T₁</span><span class="zh">先 T₁ 再归一化</span></td><td>−0.105573</td><td>−0.202213</td><td class="l"><span class="en">preserved</span><span class="zh">保持</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><span class="en">Same two endpoints. A common rotation is an isometry. Normalizing before the map puts every point on one shell, where the shared rotation preserves all distances; normalizing afterwards keeps the shell-dependent angles. The attack's leverage is relative shell angle. The normalization rows use cosine cost, which already prefers a⁻ for this pair.</span><span class="zh">同一对终点。公共旋转是等距变换。先归一化再映射，所有点落在同一壳层上，共享旋转保持全部距离；先映射再归一化，则保留了随壳层变化的角度。攻击的杠杆来自壳层之间的相对角度。归一化两行使用余弦代价，对这一对终点本就偏好 a⁻。</span></p>
+    </div>
+    <div class="ev wide">
+      <h3><span class="en">The marginal audit cannot see it</span><span class="zh">边缘分布审计看不见它</span></h3>
+      <div class="db dp" id="auditPlot"></div>
+      <p><span class="en">Epps–Pulley-style characteristic-function statistic over 20 independent Gaussian batches (N = 1024, d = 64); whiskers are across-seed SD. The paired change is 0.000575 with 95% Student interval [−0.000466, 0.001616], which contains zero. A plain mean shift is clearly visible.</span><span class="zh">Epps–Pulley 型特征函数统计量，基于 20 个独立高斯批次（N = 1024，d = 64）；误差线为跨种子标准差。配对变化为 0.000575，95% Student 区间 [−0.000466, 0.001616] 包含零；普通的均值平移则清晰可见。</span></p>
+    </div>
+    <div class="ev wide">
+      <h3><span class="en">Displacement does not bound distortion</span><span class="zh">位移约束不住形变</span></h3>
+      <div class="mini2" id="distortion"></div>
+      <p><span class="en">Each radial profile is calibrated to the same movement, 0.0625. Median ‖G<sub>T</sub> − I‖<sub>F</sub> grows from 0.4073 to 5.573 × 10⁴ while independent probe displacement stays within [0.06207, 0.06402].</span><span class="zh">每个径向剖面都校准到同样的位移 0.0625。中位数 ‖G<sub>T</sub> − I‖<sub>F</sub> 从 0.4073 增长到 5.573 × 10⁴，而独立探测样本上的位移始终在 [0.06207, 0.06402] 之内。</span></p>
+      <details class="tv">
+        <summary><span class="en">Table view · frequency sweep</span><span class="zh">表格视图 · 频率扫描</span></summary>
+        <div class="tablewrap"><table class="data" id="distTable"></table></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="explore">
+  <div class="kicker"><span class="en">Go deeper</span><span class="zh">深入阅读</span></div>
+  <h2><span class="en">Below this page</span><span class="zh">这页之下</span></h2>
+  <div class="doors">
+    <a class="door dark" href="https://crcr0.github.io/LatentGauge/">
+      <span class="arrow">↗</span>
+      <h3>📖 <span class="en">LeWorldModel → LatentGauge: the interactive story</span><span class="zh">LeWorldModel → LatentGauge：交互式故事</span></h3>
+      <p><span class="en">A long-form, scroll-driven explainer: world models, JEPA and SIGReg, LeWorldModel and temporal straightening, then the attack itself, its displacement budget, three exact negative controls and defense directions.</span><span class="zh">一份长篇滚动式讲解：从世界模型、JEPA 与 SIGReg、LeWorldModel 与时间拉直讲起，再到攻击本身、它的位移预算、三个精确负对照与防御方向。</span></p>
+      <span class="meta"><span class="en">English / 中文 · canvas-driven</span><span class="zh">中文 / English · Canvas 驱动</span></span>
+    </a>
+    <a class="door light" href="#lab">
+      <span class="arrow">↓</span>
+      <h3>🧪 <span class="en">The exact witness lab</span><span class="zh">精确见证实验室</span></h3>
+      <p><span class="en">Drag τ and watch the same two endpoints swap rank while the Gaussian law and the displacement budget hold. Every number is recomputed from the closed-form map in your browser.</span><span class="zh">拖动 τ，看同一对终点在高斯分布与位移预算都成立的情况下交换排序。所有数字都由闭式映射在浏览器中重新计算。</span></p>
+      <span class="meta"><span class="en">on this page · flip at τ* = 0.765739</span><span class="zh">就在本页 · τ* = 0.765739 处翻转</span></span>
+    </a>
+  </div>
+</section>
+
+<section class="wrap" id="bibtex">
+  <div class="kicker">BibTeX</div>
+  <h2><span class="en">Citation</span><span class="zh">引用</span></h2>
+  <div class="bibwrap">
+    <button class="copy" type="button" id="copyBib"><span class="en">Copy</span><span class="zh">复制</span></button>
+<pre class="bib" id="bib">@misc{latentgauge2027,
+  title        = {LatentGauge: Planning-Geometry Attacks in a
+                  Measure-Preserving Blind Spot},
+  author       = {{New York University} and {Cornell University} and
+                  {Massachusetts Institute of Technology} and {Brown University}},
+  howpublished = {\url{https://crcr0.github.io/LatentGauge-Homepage/}},
+  year         = {2027}
+}</pre>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="en"><strong>New York University · Cornell University · Massachusetts Institute of Technology · Brown University</strong> · deployed via GitHub Pages · interactive story at <a href="https://crcr0.github.io/LatentGauge/">crcr0.github.io/LatentGauge</a></span>
+    <span class="zh"><strong>New York University · Cornell University · Massachusetts Institute of Technology · Brown University</strong> · 经 GitHub Pages 部署 · 交互式故事见 <a href="https://crcr0.github.io/LatentGauge/">crcr0.github.io/LatentGauge</a></span>
+  </div>
+</footer>
+
+<script>
+/* ---------- language toggle ---------- */
+window.LGzh=function(){return document.body.classList.contains('lang-zh')};
+window.LGL=function(zh,en){return window.LGzh()?zh:en};
+(function(){
+  var btn=document.getElementById('langBtn');
+  function sync(){
+    var zh=window.LGzh();
+    document.documentElement.lang=zh?'zh-CN':'en';
+    btn.textContent=zh?'EN':'中文';
+    btn.setAttribute('aria-label',zh?'Switch to English':'切换到中文');
+  }
+  sync();
+  btn.addEventListener('click',function(){
+    var zh=!window.LGzh();
+    document.body.classList.toggle('lang-zh',zh);
+    try{localStorage.setItem('lg-home-lang',zh?'zh':'en')}catch(e){}
+    sync();
+    document.dispatchEvent(new CustomEvent('lg:lang'));
+  });
+})();
+
+/* ---------- exact canonical witness (paper appendix, eq. witness) ---------- */
+var LG=(function(){
+  var A0=Math.exp(-Math.pow((1-1.25)/0.185,2));
+  function alpha(s){return 0.22*(Math.exp(-Math.pow((s-1.25)/0.185,2))-A0)}
+  function dalpha(s){var u=(s-1.25)/0.185;return 0.22*(-2*u/0.185)*Math.exp(-u*u)}
+  function rot(z,t){var c=Math.cos(t),s=Math.sin(t);return[c*z[0]-s*z[1],s*z[0]+c*z[1]]}
+  function T(z,tau){return rot(z,tau*alpha(z[0]*z[0]+z[1]*z[1]))}
+  function Tinv(y,tau){return rot(y,-tau*alpha(y[0]*y[0]+y[1]*y[1]))}
+  var g=[1,0],P=[1,0.5],M=[1.64,0];
+  function d2(a,b){var x=a[0]-b[0],y=a[1]-b[1];return x*x+y*y}
+  function cost(z,tau){return d2(T(z,tau),T(g,tau))}
+  function margin(tau){return cost(M,tau)-cost(P,tau)}
+  /* D(tau) = integral_0^inf s(1 - cos(tau*alpha(s))) e^{-s/2} ds.
+     Simpson on [0,4] (h = 5e-4); beyond s = 4 alpha is constant, so the tail is exact. */
+  var H=5e-4,NS=8000,Wt=new Float64Array(NS+1),Al=new Float64Array(NS+1);
+  for(var i=0;i<=NS;i++){var s=i*H,c=(i===0||i===NS)?1:(i%2?4:2);Wt[i]=c*H/3*s*Math.exp(-s/2);Al[i]=alpha(s)}
+  var cT=-0.22*A0,tailW=12*Math.exp(-2);
+  function D(tau){var v=0;for(var i=0;i<=NS;i++)v+=Wt[i]*(1-Math.cos(tau*Al[i]));return v+tailW*(1-Math.cos(tau*cT))}
+  function bisect(f,a,b){var fa=f(a);for(var k=0;k<64;k++){var m=(a+b)/2,fm=f(m);if((fm>0)===(fa>0)){a=m;fa=fm}else b=m}return(a+b)/2}
+  var EPS2=0.0049,kG=2*dalpha(1);
+  function G(tau){var x=kG*tau;return[[1+x*x,x],[x,1]]}
+  function cond(tau){var x=kG*tau,t=2+x*x,l=(t+Math.sqrt(t*t-4))/2;return l*l}
+  var curve=[];for(var j=0;j<=230;j++){var t=j*1.15/230;curve.push({t:t,m:margin(t),D:D(t)})}
+  function Dfast(tau){var x=tau/1.15*230,i=Math.max(0,Math.min(229,Math.floor(x))),f=x-i;return curve[i].D*(1-f)+curve[i+1].D*f}
+  return{alpha:alpha,T:T,Tinv:Tinv,g:g,P:P,M:M,cost:cost,margin:margin,D:D,Dfast:Dfast,G:G,cond:cond,EPS2:EPS2,
+    tauFlip:bisect(margin,0,1),tauBudget:bisect(function(t){return D(t)-EPS2},1,1.2),curve:curve};
+})();
+
+function fmt(v,d){var s=Math.abs(v).toFixed(d);return(v<0&&parseFloat(s)!==0?'−':'')+s}
+/* text with _{sub} / ^{sup} markup, built from DOM nodes (no innerHTML) */
+function rich(node,str){node.textContent='';var re=/([_^])\{([^}]*)\}/g,last=0,m;
+  while((m=re.exec(str))){if(m.index>last)node.appendChild(document.createTextNode(str.slice(last,m.index)));
+    var e=document.createElement(m[1]==='_'?'sub':'sup');e.textContent=m[2];node.appendChild(e);last=re.lastIndex}
+  if(last<str.length)node.appendChild(document.createTextNode(str.slice(last)));return node}
+
+/* ---------- shared tooltip (values lead, labels follow; textContent only) ---------- */
+var Tip=(function(){
+  var el=document.createElement('div');el.className='tip';el.setAttribute('aria-hidden','true');document.body.appendChild(el);
+  function show(title,rows,x,y){
+    el.textContent='';
+    if(title){var t=document.createElement('div');t.className='tt';t.textContent=title;el.appendChild(t)}
+    rows.forEach(function(r){var d=document.createElement('div');
+      if(r.key){var k=document.createElement('span');k.className='tk';k.style.borderTopColor=r.key;d.appendChild(k)}
+      var b=document.createElement('b');b.textContent=r.v;d.appendChild(b);
+      if(r.n){var n=document.createElement('span');n.textContent=' '+r.n;d.appendChild(n)}
+      el.appendChild(d)});
+    el.style.display='block';
+    var w=el.offsetWidth,h=el.offsetHeight,vw=window.innerWidth,vh=window.innerHeight;
+    var left=Math.min(vw-w-8,Math.max(8,x+14)),top=y+16;if(top+h>vh-8)top=Math.max(8,y-h-12);
+    el.style.left=left+'px';el.style.top=top+'px';
+  }
+  function hide(){el.style.display='none'}
+  return{show:show,hide:hide};
+})();
+
+/* ---------- hero: frozen rollouts -> twisted shells -> planner's scorer ---------- */
+(function(){
+  var cv=document.getElementById('hero');if(!cv||!cv.getContext)return;
+  var X=cv.getContext('2d');
+  var C={ink:'#0b0b0b',ink2:'#52514e',mut:'#898781',grid:'#e1e0d9',base:'#c3c2b7',surf:'#fcfcfb',
+         plus:'#167f85',minus:'#536778',clean:'#2a78d6',map:'#eb6834'};
+  var SANS='system-ui,-apple-system,"Segoe UI","Noto Sans SC",sans-serif',SERIF='Georgia,"Times New Roman",serif',MONO='ui-monospace,"SF Mono",Menlo,Consolas,monospace';
+  var L=window.LGL;
+  var seed=20260926;function rnd(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296}
+  var cloud=[];while(cloud.length<240){var u1=rnd(),u2=rnd();if(u1<1e-12)continue;var r=Math.sqrt(-2*Math.log(u1)),th=2*Math.PI*u2;if(r<1.85)cloud.push([r*Math.cos(th),r*Math.sin(th)])}
+  var mode=null,Z=null;
+  function layout(){
+    var w=(cv.parentElement&&cv.parentElement.clientWidth)||900,m=w<700?'m':'d';
+    if(m===mode)return;mode=m;
+    if(m==='m'){cv.width=640;cv.height=1500;Z={z1:[140,8],z2:[60,500],z3:[60,1052],a12:[[320,446],[320,496]],a23:[[320,1002],[320,1048]]}}
+    else{cv.width=1760;cv.height=520;Z={z1:[22,40],z2:[566,8],z3:[1218,40],a12:[[392,262],[588,262]],a23:[[1066,262],[1206,262]]}}
+  }
+  function font(w,s,f){X.font=w+' '+s+'px '+(f||SANS)}
+  function txt(t,x,y,col,w,s,al,f){font(w,s,f);X.fillStyle=col;X.textAlign=al||'left';X.textBaseline='alphabetic';X.fillText(t,x,y)}
+  function rr(x,y,w,h,r){X.beginPath();X.moveTo(x+r,y);X.arcTo(x+w,y,x+w,y+h,r);X.arcTo(x+w,y+h,x,y+h,r);X.arcTo(x,y+h,x,y,r);X.arcTo(x,y,x+w,y,r);X.closePath()}
+  function arrow(a,b){X.strokeStyle=C.base;X.lineWidth=3;X.beginPath();X.moveTo(a[0],a[1]);X.lineTo(b[0],b[1]);X.stroke();
+    var an=Math.atan2(b[1]-a[1],b[0]-a[0]);X.fillStyle=C.base;X.beginPath();X.moveTo(b[0],b[1]);
+    X.lineTo(b[0]-14*Math.cos(an-.45),b[1]-14*Math.sin(an-.45));X.lineTo(b[0]-14*Math.cos(an+.45),b[1]-14*Math.sin(an+.45));X.closePath();X.fill()}
+  function star(x,y,R){X.beginPath();for(var i=0;i<10;i++){var a=-Math.PI/2+i*Math.PI/5,r=i%2?R*.45:R;X.lineTo(x+r*Math.cos(a),y+r*Math.sin(a))}X.closePath();
+    X.lineJoin='round';X.lineWidth=5;X.strokeStyle=C.surf;X.stroke();X.fillStyle=C.ink;X.fill()}
+  function plusDot(x,y,r){X.beginPath();X.arc(x,y,r+3,0,7);X.fillStyle=C.surf;X.fill();X.beginPath();X.arc(x,y,r,0,7);X.fillStyle=C.plus;X.fill()}
+  function minusSq(x,y,h){X.fillStyle=C.surf;X.fillRect(x-h-3,y-h-3,2*h+6,2*h+6);X.fillStyle=C.minus;X.fillRect(x-h,y-h,2*h,2*h)}
+  function bez(p0,p1,p2,p3,col){X.strokeStyle=col;X.lineWidth=2.6;X.beginPath();X.moveTo(p0[0],p0[1]);X.bezierCurveTo(p1[0],p1[1],p2[0],p2[1],p3[0],p3[1]);X.stroke();
+    for(var i=1;i<4;i++){var t=i/4,u=1-t,x=u*u*u*p0[0]+3*u*u*t*p1[0]+3*u*t*t*p2[0]+t*t*t*p3[0],y=u*u*u*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t*t*t*p3[1];X.beginPath();X.arc(x,y,4.5,0,7);X.fillStyle=col;X.fill()}}
+
+  /* zone 1 (local 360 x 440): the frozen world model */
+  function zone1(){
+    txt(L('❄ 冻结的世界模型','❄ frozen world model'),180,26,C.ink,650,22,'center');
+    rr(20,46,320,300,16);X.fillStyle=C.surf;X.fill();X.fillStyle='rgba(83,103,120,.06)';X.fill();X.lineWidth=2.5;X.strokeStyle=C.minus;X.stroke();
+    txt(L('编码器 h · 预测器 F','encoder h · predictor F'),180,84,C.mut,400,18,'center');
+    var s=[72,254],ep=[262,150],em=[282,262];
+    bez(s,[130,252],[176,152],ep,'rgba(22,127,133,.8)');
+    bez(s,[140,286],[214,270],em,'rgba(83,103,120,.8)');
+    X.beginPath();X.arc(s[0],s[1],8,0,7);X.fillStyle=C.ink2;X.fill();
+    txt('zₜ',s[0],s[1]+34,C.ink2,500,20,'center');
+    plusDot(ep[0],ep[1],10);minusSq(em[0],em[1],9);
+    txt('Φ(a⁺)',ep[0]+18,ep[1]-14,C.ink,650,19,'left');
+    txt('Φ(a⁻)',em[0]-6,em[1]+40,C.ink,650,19,'center');
+    txt('a⁺',150,180,C.ink2,500,19,'center');
+    txt('a⁻',178,308,C.ink2,500,19,'center');
+    txt(L('固定动作的 rollout：终点从不改变','fixed-action rollouts: endpoints never move'),180,378,C.ink2,500,18,'center');
+    txt(L('预测原封不动 · 权重全部冻结','predictions untouched · all weights frozen'),180,406,C.mut,400,17,'center');
+  }
+  /* zone 2 (local 520 x 500): the scorer's coordinates */
+  var PC=[260,282],S=112;
+  function p2(z){return[PC[0]+z[0]*S,PC[1]-z[1]*S]}
+  function zone2(tau){
+    txt(L('打分器看到的坐标','what the scorer sees'),260,26,C.ink,650,22,'center');
+    txt('Tτ(z) = exp[τα(‖z‖²)A] z',260,56,C.ink2,'italic 400',19,'center',SERIF);
+    [0.5,1,1.5,1.85].forEach(function(r){X.beginPath();X.arc(PC[0],PC[1],r*S,0,7);X.strokeStyle=r===1?C.base:C.grid;X.lineWidth=r===1?2.2:1.6;X.stroke()});
+    X.strokeStyle='rgba(235,104,52,.62)';X.lineWidth=2.6;X.lineCap='round';
+    for(var k=0;k<8;k++){var an=k*Math.PI/4;X.beginPath();
+      for(var i=0;i<=64;i++){var r=.12+(1.85-.12)*i/64,a=an+tau*LG.alpha(r*r),x=PC[0]+r*S*Math.cos(a),y=PC[1]-r*S*Math.sin(a);i?X.lineTo(x,y):X.moveTo(x,y)}X.stroke()}
+    X.fillStyle='rgba(42,120,214,.36)';
+    for(var j=0;j<cloud.length;j++){var q=p2(LG.T(cloud[j],tau));X.beginPath();X.arc(q[0],q[1],2.8,0,7);X.fill()}
+    var g=p2(LG.g),pP=p2(LG.T(LG.P,tau)),pM=p2(LG.T(LG.M,tau)),cP=p2(LG.P),cM=p2(LG.M);
+    if(tau>.03){X.globalAlpha=Math.min(1,tau*2)*.6;X.setLineDash([5,5]);X.lineWidth=2;
+      X.strokeStyle=C.plus;X.beginPath();X.arc(cP[0],cP[1],10,0,7);X.stroke();
+      X.strokeStyle=C.minus;X.strokeRect(cM[0]-9,cM[1]-9,18,18);X.setLineDash([]);X.globalAlpha=1}
+    X.lineWidth=2.6;X.strokeStyle='rgba(22,127,133,.9)';X.beginPath();X.moveTo(g[0],g[1]);X.lineTo(pP[0],pP[1]);X.stroke();
+    X.strokeStyle='rgba(83,103,120,.9)';X.beginPath();X.moveTo(g[0],g[1]);X.lineTo(pM[0],pM[1]);X.stroke();
+    plusDot(pP[0],pP[1],10);minusSq(pM[0],pM[1],9);star(g[0],g[1],15);
+    txt('a⁺',pP[0]-16,pP[1]-12,C.ink,700,21,'right');
+    txt('a⁻',pM[0]+4,pM[1]-20,C.ink,700,21,'left');
+    txt(L('目标 zᵍ','goal zᵍ'),g[0]-4,g[1]+40,C.ink2,500,18,'center');
+    txt('τ = '+tau.toFixed(2),14,494,C.ink2,600,20,'left',MONO);
+  }
+  /* zone 3 (local 520 x 440): the planner's scorer */
+  function zone3(tau){
+    txt(L('规划器的打分','the planner’s scorer'),260,26,C.ink,650,22,'center');
+    txt(L('代价 = ‖T(终点) − T(目标)‖²','cost = ‖T(endpoint) − T(goal)‖²'),260,56,C.ink2,'italic 400',19,'center',SERIF);
+    var cp=LG.cost(LG.P,tau),cm=LG.cost(LG.M,tau),x0=92,BW=318,sc=BW/0.5;
+    function bar(y,v,clean,col,label,tick){
+      txt(label,8,y+19,C.ink2,650,20,'left');
+      rr(x0,y,BW,24,4);X.fillStyle='rgba(11,11,11,.04)';X.fill();
+      var w=Math.max(8,v*sc);X.fillStyle=col;X.beginPath();X.moveTo(x0,y);X.lineTo(x0+w-4,y);X.arcTo(x0+w,y,x0+w,y+4,4);X.lineTo(x0+w,y+20);X.arcTo(x0+w,y+24,x0+w-4,y+24,4);X.lineTo(x0,y+24);X.closePath();X.fill();
+      var cx=x0+clean*sc;X.strokeStyle=C.ink;X.lineWidth=2;X.beginPath();X.moveTo(cx,y-6);X.lineTo(cx,y+30);X.stroke();
+      if(tick)txt(L('干净值','clean'),cx,y-12,C.mut,500,15,'center');
+      txt(v.toFixed(4),516,y+19,C.ink,650,20,'right',MONO);
+    }
+    bar(98,cp,0.25,C.plus,'C(a⁺)',true);
+    bar(160,cm,0.4096,C.minus,'C(a⁻)',false);
+    var rev=cm<cp;
+    rr(8,214,508,54,12);X.fillStyle=rev?'rgba(235,104,52,.12)':'rgba(22,127,133,.08)';X.fill();
+    txt(L('规划器选择','planner picks'),26,248,C.ink2,500,19,'left');
+    if(rev)minusSq(166,241,9);else plusDot(166,241,10);
+    txt(rev?'a⁻':'a⁺',186,248,C.ink,700,21,'left');
+    txt(rev?L('排序已反转','ranking reversed'):L('排序保持','ranking preserved'),500,248,C.ink,650,18,'right');
+    var D=LG.Dfast(tau),tx=8,tw=508,ty=318,th=14,max=0.0065;
+    txt(L('位移 D(Tτ)','displacement D(Tτ)'),tx,304,C.ink2,500,18,'left');
+    txt(D.toFixed(5)+(D<=LG.EPS2?'  ≤ ε²':'  > ε²'),516,304,C.ink,600,18,'right',MONO);
+    rr(tx,ty,tw,th,7);X.fillStyle=C.grid;X.fill();
+    var fw=Math.min(1,D/max)*tw;if(fw>2){rr(tx,ty,Math.max(fw,10),th,7);X.fillStyle=C.map;X.fill()}
+    var bx=tx+tw*LG.EPS2/max;X.strokeStyle=C.ink;X.lineWidth=2;X.beginPath();X.moveTo(bx,ty-7);X.lineTo(bx,ty+th+7);X.stroke();
+    txt('ε² = 0.0049',bx,ty+th+28,C.ink2,500,16,'center');
+    txt(L('✓ 预测不变   ✓ 高斯分布不变（T#γ = γ）','✓ predictions unchanged   ✓ Gaussian law unchanged (T#γ = γ)'),260,414,C.mut,500,17,'center');
+  }
+  function draw(tau){
+    layout();X.setTransform(1,0,0,1,0,0);X.clearRect(0,0,cv.width,cv.height);X.lineCap='butt';
+    X.save();X.translate(Z.z1[0],Z.z1[1]);zone1();X.restore();
+    X.save();X.translate(Z.z2[0],Z.z2[1]);zone2(tau);X.restore();
+    X.save();X.translate(Z.z3[0],Z.z3[1]);zone3(tau);X.restore();
+    arrow(Z.a12[0],Z.a12[1]);arrow(Z.a23[0],Z.a23[1]);
+  }
+  /* Site convention: the full animation path runs regardless of the reduced-motion preference. */
+  var PER=11000,t0=null,run=false,raf=0,last=1;
+  function sm(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)}
+  function tauAt(ms){var t=ms%PER;if(t<1400)return 0;if(t<5000)return sm((t-1400)/3600);if(t<8800)return 1;return 1-sm((t-8800)/2200)}
+  function frame(ts){if(!run)return;if(t0===null)t0=ts;last=tauAt(ts-t0);draw(last);raf=requestAnimationFrame(frame)}
+  function start(){if(!run){run=true;raf=requestAnimationFrame(frame)}}
+  function stop(){run=false;cancelAnimationFrame(raf)}
+  draw(1);
+  if('IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(e){e.isIntersecting?start():stop()})}).observe(cv)}else start();
+  document.addEventListener('lg:lang',function(){if(!run)draw(last)});
+  window.addEventListener('resize',function(){if(!run)draw(last)});
+})();
+
+/* ---------- witness lab (SVG) ---------- */
+(function(){
+  var NS='http://www.w3.org/2000/svg',L=window.LGL;
+  function el(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+  function tx(parent,x,y,str,cls,anchor){var t=el('text',{x:x,y:y,'text-anchor':anchor||'start'},parent);if(cls)t.setAttribute('class',cls);t.textContent=str;return t}
+  var sA=document.getElementById('labA'),sB=document.getElementById('labB'),sC=document.getElementById('labC');
+  var slider=document.getElementById('tau'),out=document.getElementById('tauOut'),read=document.getElementById('labRead'),verdict=document.getElementById('labVerdict'),table=document.getElementById('labTable');
+  var tau=1,R=Math.sqrt(0.44),A={},B={},Cc={};
+  /* panel (a): clean coordinates, window x in [0.2, 2.0], y in [-0.95, 0.95] */
+  var AS=215.6;function ax(x){return 16+(x-0.2)*AS}function ay(y){return 235-y*AS}
+  function starPath(cx,cy,Rr){var d='';for(var i=0;i<10;i++){var a=-Math.PI/2+i*Math.PI/5,r=i%2?Rr*.45:Rr;d+=(i?'L':'M')+(cx+r*Math.cos(a)).toFixed(2)+' '+(cy+r*Math.sin(a)).toFixed(2)}return d+'Z'}
+  function buildA(){
+    sA.textContent='';
+    var defs=el('defs',{},sA),cp=el('clipPath',{id:'clipA'},defs);el('rect',{x:16,y:30,width:388,height:410},cp);
+    el('rect',{x:16,y:30,width:388,height:410,fill:'#fcfcfb',stroke:'#e1e0d9'},sA);
+    var g=el('g',{'clip-path':'url(#clipA)'},sA);
+    [0.5,1,1.5].forEach(function(r){el('circle',{cx:ax(0),cy:ay(0),r:r*AS,fill:'none',stroke:r===1?'#c3c2b7':'#e1e0d9','stroke-width':r===1?1.4:1},g)});
+    tx(g,ax(0.5)+4,ay(0.866)+16,'‖z‖ = 1','mut');
+    el('circle',{cx:ax(1),cy:ay(0),r:R*AS,fill:'none',stroke:'#2a78d6','stroke-width':2},g);
+    A.local=el('path',{fill:'none',stroke:'#eb6834','stroke-width':2,'stroke-dasharray':'7 6'},g);
+    A.exact=el('path',{fill:'none',stroke:'#eb6834','stroke-width':2.6,'stroke-linejoin':'round'},g);
+    var pp=[ax(1),ay(0.5)],pm=[ax(1.64),ay(0)],pg=[ax(1),ay(0)];
+    el('circle',{cx:pp[0],cy:pp[1],r:9.5,fill:'#fcfcfb'},sA);el('circle',{cx:pp[0],cy:pp[1],r:7,fill:'#167f85'},sA);
+    el('rect',{x:pm[0]-9,y:pm[1]-9,width:18,height:18,fill:'#fcfcfb'},sA);el('rect',{x:pm[0]-6.5,y:pm[1]-6.5,width:13,height:13,fill:'#536778'},sA);
+    el('path',{d:starPath(pg[0],pg[1],11),fill:'#0b0b0b',stroke:'#fcfcfb','stroke-width':2.5,'stroke-linejoin':'round'},sA);
+    tx(sA,pp[0]+13,pp[1]-9,'a⁺ = (1, 0.5)','ink');
+    tx(sA,pm[0]+2,pm[1]-15,'a⁻ = (1.64, 0)','ink','middle');
+    tx(sA,pg[0],pg[1]+26,L('目标 zᵍ = (1, 0)','goal zᵍ = (1, 0)'),'','middle');
+    tx(sA,210,462,L('终点与目标固定；等代价线随 τ 改变','endpoints and goal are fixed; contours move with τ'),'mut','middle');
+  }
+  function drawA(){
+    var Gm=LG.G(tau),dl='',de='';
+    for(var i=0;i<=720;i++){var ph=i/720*2*Math.PI,u=[Math.cos(ph),Math.sin(ph)];
+      var q=Gm[0][0]*u[0]*u[0]+2*Gm[0][1]*u[0]*u[1]+Gm[1][1]*u[1]*u[1],r=Math.sqrt(0.44/q);
+      var ze=LG.Tinv([1+R*u[0],R*u[1]],tau);
+      dl+=(i?'L':'M')+ax(1+r*u[0]).toFixed(2)+' '+ay(r*u[1]).toFixed(2);
+      de+=(i?'L':'M')+ax(ze[0]).toFixed(2)+' '+ay(ze[1]).toFixed(2)}
+    A.local.setAttribute('d',dl+'Z');A.exact.setAttribute('d',de+'Z');
+  }
+  /* panels (b),(c): tau in [0,1.15] on x */
+  var X0=56,X1=404,Y0=14,Y1=206;function bx(t){return X0+t/1.15*(X1-X0)}
+  function frame(svg,store,ymin,ymax,ticks,tfmt,key){
+    svg.textContent='';
+    function by(v){return Y0+(ymax-v)/(ymax-ymin)*(Y1-Y0)}store.by=by;
+    el('rect',{x:bx(LG.tauFlip),y:Y0,width:bx(LG.tauBudget)-bx(LG.tauFlip),height:Y1-Y0,fill:'rgba(22,127,133,.10)'},svg);
+    ticks.forEach(function(v){el('line',{x1:X0,x2:X1,y1:by(v),y2:by(v),stroke:'#e1e0d9','stroke-width':1},svg);tx(svg,X0-6,by(v)+4,tfmt(v),'tick','end')});
+    [0,0.25,0.5,0.75,1].forEach(function(t){el('line',{x1:bx(t),x2:bx(t),y1:Y1,y2:Y1+5,stroke:'#c3c2b7'},svg);tx(svg,bx(t),Y1+19,String(t),'tick','middle')});
+    tx(svg,X1,Y1+36,'τ','tick','end');
+    var d='';LG.curve.forEach(function(p,i){d+=(i?'L':'M')+bx(p.t).toFixed(2)+' '+by(p[key]).toFixed(2)});
+    store.path=el('path',{d:d,fill:'none',stroke:'#eb6834','stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round'},svg);
+    store.cross=el('line',{y1:Y0,y2:Y1,stroke:'#0b0b0b','stroke-opacity':.35,'stroke-width':1},svg);
+    store.ring=el('circle',{r:7,fill:'#fcfcfb'},svg);store.dot=el('circle',{r:5,fill:'#eb6834'},svg);
+    store.lab=tx(svg,0,0,'','ink');
+  }
+  function buildB(){
+    frame(sB,B,-0.08,0.18,[-0.05,0,0.05,0.1,0.15],function(v){return fmt(v,2)},'m');
+    el('line',{x1:X0,x2:X1,y1:B.by(0),y2:B.by(0),stroke:'#898781','stroke-width':1.2},sB);
+    el('line',{x1:bx(LG.tauFlip),x2:bx(LG.tauFlip),y1:Y0,y2:Y1,stroke:'#52514e','stroke-width':1},sB);
+    tx(sB,bx(LG.tauFlip)-5,Y0+13,'τ* = '+LG.tauFlip.toFixed(4),'mut','end');
+    tx(sB,X0+8,B.by(0)-8,L('a⁺ 更优','a⁺ preferred'),'mut');
+    tx(sB,X0+8,B.by(0)+17,L('a⁻ 更优','a⁻ preferred'),'mut');
+    sB.appendChild(B.cross);sB.appendChild(B.ring);sB.appendChild(B.dot);sB.appendChild(B.lab);
+  }
+  function buildC(){
+    frame(sC,Cc,0,0.0066,[0,0.002,0.004,0.006],function(v){return v===0?'0':v.toFixed(3)},'D');
+    el('line',{x1:X0,x2:X1,y1:Cc.by(LG.EPS2),y2:Cc.by(LG.EPS2),stroke:'#52514e','stroke-width':1.2},sC);
+    tx(sC,X0+8,Cc.by(LG.EPS2)-7,'ε² = 0.07² = 0.0049','mut');
+    el('line',{x1:bx(LG.tauBudget),x2:bx(LG.tauBudget),y1:Y0,y2:Y1,stroke:'#52514e','stroke-width':1},sC);
+    tx(sC,bx(LG.tauBudget)-5,Y1-8,'τ = '+LG.tauBudget.toFixed(4),'mut','end');
+    sC.appendChild(Cc.cross);sC.appendChild(Cc.ring);sC.appendChild(Cc.dot);sC.appendChild(Cc.lab);
+  }
+  function place(store,y,label,right){var x=bx(tau);store.cross.setAttribute('x1',x);store.cross.setAttribute('x2',x);
+    store.ring.setAttribute('cx',x);store.ring.setAttribute('cy',y);store.dot.setAttribute('cx',x);store.dot.setAttribute('cy',y);
+    store.lab.textContent=label;var flip=x>X1-110;store.lab.setAttribute('x',flip?x-10:x+10);store.lab.setAttribute('text-anchor',flip?'end':'start');
+    store.lab.setAttribute('y',Math.max(Y0+12,Math.min(Y1-6,y+(right?-10:16))))}
+  var cells={};
+  function buildRead(){
+    read.textContent='';
+    [['cp',L('映射后代价 C_{T}(a⁺)','mapped cost C_{T}(a⁺)')],['cm',L('映射后代价 C_{T}(a⁻)','mapped cost C_{T}(a⁻)')],['mg',L('间隔 m_{τ}','margin m_{τ}')],['dd',L('位移 D_{γ}(T_{τ})','displacement D_{γ}(T_{τ})')],['cd',L('目标处 cond(G)','cond(G) at the goal')]].forEach(function(r){
+      var d=document.createElement('div');d.className='ro';var l=document.createElement('div');l.className='label';rich(l,r[1]);
+      var v=document.createElement('div');v.className='value';var s=document.createElement('div');s.className='sub';
+      d.appendChild(l);d.appendChild(v);d.appendChild(s);read.appendChild(d);cells[r[0]]={v:v,s:s}});
+  }
+  function buildTable(){
+    table.textContent='';var th=document.createElement('thead'),tr=document.createElement('tr');
+    ['τ','C_{T}(a⁺)','C_{T}(a⁻)','m_{τ}','D_{γ}(T_{τ})','cond(G)'].forEach(function(h){var c=document.createElement('th');rich(c,h);tr.appendChild(c)});th.appendChild(tr);table.appendChild(th);
+    var tb=document.createElement('tbody');
+    [[0,L('干净','clean')],[LG.tauFlip,L('平局 τ*','tie τ*')],[1,L('论文','paper')],[LG.tauBudget,L('预算边界','budget edge')],[1.15,L('超出预算','over budget')]].forEach(function(r){
+      var t=r[0],row=document.createElement('tr');
+      [t.toFixed(6)+' · '+r[1],LG.cost(LG.P,t).toFixed(6),LG.cost(LG.M,t).toFixed(6),fmt(LG.margin(t),6),LG.D(t).toFixed(9),LG.cond(t).toFixed(5)].forEach(function(v){var c=document.createElement('td');c.textContent=v;row.appendChild(c)});
+      tb.appendChild(row)});
+    table.appendChild(tb);
+  }
+  function update(){
+    var cp=LG.cost(LG.P,tau),cm=LG.cost(LG.M,tau),m=cm-cp,D=LG.D(tau),cd=LG.cond(tau);
+    out.textContent='τ = '+tau.toFixed(3);
+    drawA();
+    place(B,B.by(m),fmt(m,4),m<0.12);
+    place(Cc,Cc.by(D),D.toFixed(5),true);
+    cells.cp.v.textContent=cp.toFixed(4);cells.cp.s.textContent=L('干净 0.2500','clean 0.2500');
+    cells.cm.v.textContent=cm.toFixed(4);cells.cm.s.textContent=L('干净 0.4096','clean 0.4096');
+    cells.mg.v.textContent=fmt(m,4);cells.mg.s.textContent=Math.abs(m)<5e-7?L('= 0：平局','= 0: tie'):(m>0?L('> 0：a⁺ 更优','> 0: a⁺ preferred'):L('< 0：a⁻ 更优','< 0: a⁻ preferred'));
+    var inB=D<=LG.EPS2+1e-9,edge=Math.abs(D-LG.EPS2)<1e-8;
+    cells.dd.v.textContent=D.toFixed(6);cells.dd.s.textContent=inB?L('≤ ε² = 0.0049 ✓','≤ ε² = 0.0049 ✓'):L('> ε² = 0.0049','> ε² = 0.0049');
+    cells.cd.v.textContent=cd.toFixed(3);cells.cd.s.textContent=L('干净为 1','clean = 1');
+    var vk,vt,vs;
+    if(Math.abs(m)<5e-7){vk='';vt=L('边界：两个候选打平','Boundary: the two candidates tie');vs=L('mτ = 0 只是边界，还不是成功的攻击','mτ = 0 is only the boundary, not a successful attack')}
+    else if(m>0){vk='keep';vt=L('排序保持：规划器仍选 a⁺','Ordering preserved: the planner still picks a⁺');vs=L('映射尚不足以越过平局点','the map has not yet crossed the tie')}
+    else if(inB){vk='rev';vt=L('预算内排序反转：规划器改选 a⁻','Ranking reversed within budget: the planner now picks a⁻');vs=edge?L('恰好位于预算边界 D = ε²，仍然可行','exactly at the budget edge D = ε², still feasible'):L('同样的终点、同样的高斯分布','same endpoints, same Gaussian law')}
+    else{vk='';vt=L('排序反转，但超出位移预算','Ranking reversed, but over the displacement budget');vs=L('Dγ(Tτ) > ε²：不属于可行攻击','Dγ(Tτ) > ε²: not a feasible attack')}
+    verdict.className='verdict'+(vk?' '+vk:'');verdict.querySelector('.vt').textContent=vt;verdict.querySelector('.vs').textContent=vs;
+  }
+  function setTau(t,fromSlider){tau=Math.max(0,Math.min(1.15,t));if(!fromSlider)slider.value=tau;update()}
+  function build(){buildA();buildB();buildC();buildRead();buildTable();update()}
+  build();
+  slider.addEventListener('input',function(){stopSweep();setTau(parseFloat(slider.value),true)});
+  document.querySelectorAll('.presets [data-tau]').forEach(function(b){b.addEventListener('click',function(){stopSweep();var v=b.getAttribute('data-tau');setTau(v==='flip'?LG.tauFlip:v==='budget'?LG.tauBudget:parseFloat(v))})});
+  [sB,sC].forEach(function(svg){
+    var down=false;
+    function at(e){var r=svg.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*420;stopSweep();setTau((x-X0)/(X1-X0)*1.15)}
+    svg.addEventListener('pointerdown',function(e){down=true;try{svg.setPointerCapture(e.pointerId)}catch(_){}at(e)});
+    svg.addEventListener('pointermove',function(e){if(down)at(e)});
+    svg.addEventListener('pointerup',function(){down=false});svg.addEventListener('pointercancel',function(){down=false});
+  });
+  var playBtn=document.getElementById('labPlay'),sweepRaf=0,sweeping=false;
+  function stopSweep(){if(sweeping){sweeping=false;cancelAnimationFrame(sweepRaf);playBtn.setAttribute('aria-pressed','false')}}
+  playBtn.addEventListener('click',function(){
+    if(sweeping){stopSweep();return}
+    sweeping=true;playBtn.setAttribute('aria-pressed','true');var t0=null;
+    function step(ts){if(!sweeping)return;if(t0===null)t0=ts;var e=(ts-t0)/6000;
+      if(e>=1){setTau(1);stopSweep();return}
+      setTau(e<0.85?1.15*e/0.85:1.15-0.15*(e-0.85)/0.15);sweepRaf=requestAnimationFrame(step)}
+    sweepRaf=requestAnimationFrame(step);
+  });
+  document.addEventListener('lg:lang',build);
+})();
+
+/* ---------- results: dumbbell from paper Table 1 (original published + residual values) ---------- */
+(function(){
+  var L=window.LGL,box=document.getElementById('dumbbell'),tbl=document.getElementById('dbTable');
+  var groups=[
+    {en:'DINO-WM protocol',zh:'DINO-WM 协议',tasks:['Maze','Wall','Reach','PushT'],rows:[
+      {en:'DINO-WM',zh:'DINO-WM',c:[98,96,92,90],ca:'94.00',m:[73.50,62.40,64.40,54.00],ma:'63.58'}]},
+    {en:'Temporal Straightening protocol · GD/MPC',zh:'Temporal Straightening 协议 · GD/MPC',tasks:['Wall','UMaze','Medium','PushT'],rows:[
+      {en:'Spatial DINO + projector',zh:'空间 DINO + projector',c:[90.67,81.33,96.67,78.67],ca:'86.84',m:[56.22,52.86,61.87,47.20],ma:'54.54'},
+      {en:'Spatial DINO + projector + TS',zh:'空间 DINO + projector + TS',c:[100,100,98.67,85.33],ca:'96.00',m:[72.00,74.00,69.07,58.02],ma:'68.27'}]},
+    {en:'LeWorldModel protocol',zh:'LeWorldModel 协议',tasks:['Two-Room','Reacher','PushT','Cube'],rows:[
+      {en:'DINO-WM (source input)',zh:'DINO-WM（原始输入）',c:[100,79,74,86],ca:'84.75',m:[68.00,56.09,45.88,56.76],ma:'56.68'},
+      {en:'PLDM',zh:'PLDM',c:[97,78,78,65],ca:'79.50',m:[71.78,60.06,53.04,45.50],ma:'57.59'},
+      {en:'LeWM',zh:'LeWM',c:[87,86,96,74],ca:'85.75',m:[60.90,62.78,62.40,44.40],ma:'57.62'}]}];
+  function pos(v){return((v-40)/60*100).toFixed(3)+'%'}
+  function nd(v){return String(+v.toFixed(2))}
+  function render(){
+    box.textContent='';
+    var axr=document.createElement('div');axr.className='db-axis';var ax=document.createElement('div');ax.className='ax';
+    [40,50,60,70,80,90,100].forEach(function(v){var s=document.createElement('span');s.style.left=pos(v);s.textContent=v===100?'100%':String(v);ax.appendChild(s)});
+    axr.appendChild(document.createElement('div'));axr.appendChild(ax);box.appendChild(axr);
+    groups.forEach(function(gr){
+      var h=document.createElement('div');h.className='db-group';h.textContent=L(gr.zh,gr.en)+' · '+gr.tasks.join(', ');box.appendChild(h);
+      gr.rows.forEach(function(r){
+        var ca=parseFloat(r.ca),ma=parseFloat(r.ma);
+        var row=document.createElement('div');row.className='db-row';row.tabIndex=0;
+        var lab=document.createElement('div');lab.className='db-label';lab.textContent=L(r.zh,r.en);
+                var tr=document.createElement('div');tr.className='db-track';
+        var ln=document.createElement('span');ln.className='db-line';ln.style.left=pos(ma);ln.style.width=((ca-ma)/60*100).toFixed(3)+'%';tr.appendChild(ln);
+        var dc=document.createElement('i');dc.className='dot';dc.style.left=pos(ca);tr.appendChild(dc);
+        var dm=document.createElement('i');dm.className='dot dia';dm.style.left=pos(ma);tr.appendChild(dm);
+        var val=document.createElement('div');val.className='db-val';
+        val.appendChild(document.createTextNode(ca.toFixed(1)+' → '));var b=document.createElement('b');b.textContent=ma.toFixed(1);val.appendChild(b);
+        var dl=document.createElement('span');dl.className='dl';dl.textContent='−'+(ca-ma).toFixed(1)+' pts';val.appendChild(dl);
+        row.appendChild(lab);row.appendChild(tr);row.appendChild(val);
+        row.setAttribute('aria-label',L(r.zh,r.en)+': '+r.ca+'% → '+r.ma+'%');
+        function tipAt(x,y){Tip.show(L(r.zh,r.en)+' · '+L(gr.zh,gr.en),
+          [{v:r.ca+'% → '+r.ma+'%',n:L('平均','mean')}].concat(gr.tasks.map(function(t,i){return{v:nd(r.c[i])+' → '+nd(r.m[i]),n:t}})),x,y)}
+        row.addEventListener('pointermove',function(e){tipAt(e.clientX,e.clientY)});
+        row.addEventListener('pointerleave',Tip.hide);
+        row.addEventListener('focus',function(){var rc=tr.getBoundingClientRect();tipAt(rc.left+rc.width*0.5,rc.top+rc.height*0.5)});
+        row.addEventListener('blur',Tip.hide);
+        box.appendChild(row);
+      });
+    });
+    tbl.textContent='';
+    var tb=document.createElement('tbody');
+    groups.forEach(function(gr){
+      var hr=document.createElement('tr');hr.className='grp';var th=document.createElement('th');th.colSpan=6;th.textContent=L(gr.zh,gr.en);hr.appendChild(th);tb.appendChild(hr);
+      var hd=document.createElement('tr');[L('受害模型','Victim')].concat(gr.tasks,[L('平均','Avg.')]).forEach(function(t){var c=document.createElement('th');c.textContent=t;hd.appendChild(c)});tb.appendChild(hd);
+      gr.rows.forEach(function(r){
+        [[L(r.zh,r.en),r.c,r.ca,false],[L(r.zh,r.en)+' + LatentGauge',r.m,r.ma,true]].forEach(function(x){
+          var tr=document.createElement('tr');if(x[3])tr.className='ours';
+          var c0=document.createElement('td');c0.textContent=x[0];tr.appendChild(c0);
+          x[1].forEach(function(v){var c=document.createElement('td');c.textContent=x[3]?v.toFixed(2):nd(v);tr.appendChild(c)});
+          var ca=document.createElement('td');ca.textContent=x[2];tr.appendChild(ca);tb.appendChild(tr)});
+      });
+    });
+    tbl.appendChild(tb);
+  }
+  render();document.addEventListener('lg:lang',render);
+})();
+
+/* ---------- evidence: marginal audit dot plot (data/audit_summary.csv) ---------- */
+(function(){
+  var L=window.LGL,box=document.getElementById('auditPlot');
+  var rows=[{en:'Clean Gaussian',zh:'干净高斯样本',m:0.408528674316,sd:0.0711374891551,k:'dot',c:'#2a78d6'},
+            {en:'Radial map',zh:'径向映射',m:0.409103717528,sd:0.0709110746254,k:'dot dia',c:'#eb6834'},
+            {en:'Mean shift (control)',zh:'均值平移（对照）',m:0.542651005066,sd:0.102665260243,k:'dot gray',c:'#52514e'}];
+  var lo=0.25,hi=0.70;function pos(v){return((v-lo)/(hi-lo)*100).toFixed(3)+'%'}
+  function render(){
+    box.textContent='';
+    var axr=document.createElement('div');axr.className='db-axis';var ax=document.createElement('div');ax.className='ax';
+    [0.3,0.4,0.5,0.6,0.7].forEach(function(v){var s=document.createElement('span');s.style.left=pos(v);s.textContent=v.toFixed(1);ax.appendChild(s)});
+    axr.appendChild(document.createElement('div'));axr.appendChild(ax);box.appendChild(axr);
+    rows.forEach(function(r){
+      var row=document.createElement('div');row.className='db-row';row.tabIndex=0;
+      var lab=document.createElement('div');lab.className='db-label';lab.textContent=L(r.zh,r.en);
+      var tr=document.createElement('div');tr.className='db-track free';
+      [0.3,0.4,0.5,0.6,0.7].forEach(function(v){var gl=document.createElement('span');gl.className='gl';gl.style.left=pos(v);tr.appendChild(gl)});
+      var ln=document.createElement('span');ln.className='db-line';ln.style.left=pos(r.m-r.sd);ln.style.width=(2*r.sd/(hi-lo)*100).toFixed(3)+'%';tr.appendChild(ln);
+      var d=document.createElement('i');d.className=r.k;d.style.left=pos(r.m);tr.appendChild(d);
+      var val=document.createElement('div');val.className='db-val';var b=document.createElement('b');b.textContent=r.m.toFixed(4);val.appendChild(b);
+      val.appendChild(document.createTextNode(' ± '+r.sd.toFixed(4)));
+      row.appendChild(lab);row.appendChild(tr);row.appendChild(val);
+      function tipAt(x,y){Tip.show(L(r.zh,r.en),[{key:r.c,v:r.m.toFixed(5),n:L('跨 20 个批次的均值','mean over 20 batches')},{v:'± '+r.sd.toFixed(5),n:L('跨种子标准差','across-seed SD')}],x,y)}
+      row.addEventListener('pointermove',function(e){tipAt(e.clientX,e.clientY)});row.addEventListener('pointerleave',Tip.hide);
+      row.addEventListener('focus',function(){var rc=tr.getBoundingClientRect();tipAt(rc.left+rc.width/2,rc.top+rc.height/2)});row.addEventListener('blur',Tip.hide);
+      box.appendChild(row);
+    });
+  }
+  render();document.addEventListener('lg:lang',render);
+})();
+
+/* ---------- evidence: displacement vs distortion small multiples (data/distortion.csv) ---------- */
+(function(){
+  var NS='http://www.w3.org/2000/svg',L=window.LGL,box=document.getElementById('distortion'),tbl=document.getElementById('distTable');
+  var F=[0.1,0.3,1,3,10,30,100,300,1000],
+      Gm=[0.407339646142,0.410157457866,0.424009935677,1.11950170778,6.54952386694,50.0818806962,543.043944099,5000.3681795,55733.742972],
+      Dt=[0.0622601281777,0.0620676510861,0.0632822309086,0.0640186962421,0.062289166596,0.062178046576,0.0631896069515,0.0624016871579,0.0626005767777];
+  function el(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+  function tx(p,x,y,s,cls,a){var t=el('text',{x:x,y:y,'text-anchor':a||'start'},p);if(cls)t.setAttribute('class',cls);t.textContent=s;return t}
+  var X0=40,X1=290,Y0=12,Y1=150;function xf(f){return X0+(Math.log10(f)+1)/4*(X1-X0)}
+  function sci(v){if(v>=1000){var e=Math.floor(Math.log10(v));return(v/Math.pow(10,e)).toFixed(2)+'×10'+String(e).replace(/\d/g,function(d){return'⁰¹²³⁴⁵⁶⁷⁸⁹'[d]})}return v.toFixed(v<1?4:2)}
+  function chart(title,ys,yf,yticks,ylab,refY,refLab,fmtV,nameV){
+    var wrap=document.createElement('div');var t=document.createElement('div');t.className='mt';rich(t,title);wrap.appendChild(t);
+    var svg=el('svg',{viewBox:'0 0 300 182',role:'img'});svg.setAttribute('aria-label',title.replace(/[_^]\{([^}]*)\}/g,'$1'));wrap.appendChild(svg);
+    yticks.forEach(function(v){el('line',{x1:X0,x2:X1,y1:yf(v),y2:yf(v),stroke:'#e1e0d9'},svg);tx(svg,X0-5,yf(v)+4,ylab(v),'tick','end')});
+    [0.1,1,10,100,1000].forEach(function(f){el('line',{x1:xf(f),x2:xf(f),y1:Y1,y2:Y1+4,stroke:'#c3c2b7'},svg);tx(svg,xf(f),Y1+16,f<1?'0.1':f>=100?(f===100?'10²':'10³'):String(f),'tick','middle')});
+    tx(svg,X1,Y1+30,L('径向频率','radial frequency'),'tick','end');
+    if(refY!=null){el('line',{x1:X0,x2:X1,y1:yf(refY),y2:yf(refY),stroke:'#52514e','stroke-width':1.2},svg)}
+    var d='';ys.forEach(function(v,i){d+=(i?'L':'M')+xf(F[i]).toFixed(2)+' '+yf(v).toFixed(2)});
+    el('path',{d:d,fill:'none',stroke:'#eb6834','stroke-width':2,'stroke-linejoin':'round'},svg);
+    ys.forEach(function(v,i){var cx=xf(F[i]),cy=yf(v);el('circle',{cx:cx,cy:cy,r:6,fill:'#fcfcfb'},svg);el('circle',{cx:cx,cy:cy,r:4,fill:'#eb6834'},svg);
+      var hit=el('circle',{cx:cx,cy:cy,r:12,fill:'transparent',tabindex:0},svg);
+      function show(x,y){Tip.show(L('频率 ','frequency ')+F[i],[{key:'#eb6834',v:fmtV(v),n:nameV}],x,y)}
+      hit.addEventListener('pointermove',function(e){show(e.clientX,e.clientY)});hit.addEventListener('pointerleave',Tip.hide);
+      hit.addEventListener('focus',function(){var r=hit.getBoundingClientRect();show(r.left+r.width/2,r.top)});hit.addEventListener('blur',Tip.hide)});
+    return wrap;
+  }
+  function render(){
+    box.textContent='';
+    box.appendChild(chart(L('局部形变：中位数 ‖G_{T} − I‖_{F} · 对数轴','Local distortion: median ‖G_{T} − I‖_{F} · log scale'),Gm,
+      function(v){return Y0+(5-Math.log10(v))/6*(Y1-Y0)},[0.1,1,10,100,1000,10000,100000],
+      function(v){return v<1?'0.1':v===1?'1':'10'+'¹²³⁴⁵'.charAt(Math.round(Math.log10(v))-1)},null,null,sci,L('中位数 ‖G − I‖（Frobenius）','median Frobenius ‖G − I‖')));
+    box.appendChild(chart(L('探测样本位移 · 线性轴 · 横线为校准值 0.0625','Probe displacement · linear scale · line: calibrated 0.0625'),Dt,
+      function(v){return Y0+(0.068-v)/(0.068-0.056)*(Y1-Y0)},[0.056,0.06,0.064,0.068],function(v){return v.toFixed(3)},
+      0.0625,L('校准值 0.0625','calibrated 0.0625'),function(v){return v.toFixed(5)},L('独立探测位移','independent probe displacement')));
+    tbl.textContent='';var th=document.createElement('thead'),hr=document.createElement('tr');
+    [L('径向频率','Radial frequency'),L('中位数 ‖G_{T} − I‖_{F}','Median ‖G_{T} − I‖_{F}'),L('探测位移','Probe displacement')].forEach(function(h){var c=document.createElement('th');rich(c,h);hr.appendChild(c)});th.appendChild(hr);tbl.appendChild(th);
+    var tb=document.createElement('tbody');F.forEach(function(f,i){var r=document.createElement('tr');[String(f),sci(Gm[i]),Dt[i].toFixed(5)].forEach(function(v){var c=document.createElement('td');c.textContent=v;r.appendChild(c)});tb.appendChild(r)});tbl.appendChild(tb);
+  }
+  render();document.addEventListener('lg:lang',render);
+})();
+
+/* ---------- BibTeX copy ---------- */
+(function(){
+  var b=document.getElementById('copyBib');
+  b.addEventListener('click',function(){
+    var t=document.getElementById('bib').textContent;
+    function done(){var zh=window.LGzh();b.textContent=zh?'已复制':'Copied';setTimeout(function(){b.textContent='';var e=document.createElement('span');e.className='en';e.textContent='Copy';var z=document.createElement('span');z.className='zh';z.textContent='复制';b.appendChild(e);b.appendChild(z)},1600)}
+    try{navigator.clipboard.writeText(t).then(done,function(){})}catch(e){}
+  });
+})();
+</script>
+</body>
+</html>
