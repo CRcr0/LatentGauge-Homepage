@@ -210,7 +210,7 @@ details.tv .tablewrap{margin-top:6px}
 .dp{--cols:minmax(130px,190px) 1fr 132px;margin-top:10px;max-width:760px}
 
 /* deep-dive doors */
-.doors{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:22px}
+.doors{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:16px;margin-top:22px}
 .door{border-radius:14px;padding:26px 24px;text-decoration:none;display:block;border:1px solid var(--grid);transition:transform .12s ease, box-shadow .12s ease}
 a.door:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(11,11,11,.08)}
 .door.dark{background:#14161d;color:#eef0f6;border-color:#14161d}
@@ -290,6 +290,8 @@ if(lgq==='zh'||(lgq!=='en'&&lgs==='zh')){document.body.classList.add('lang-zh');
   <div class="btns">
     <a class="btn primary" href="https://crcr0.github.io/LatentGauge/"><span class="ic">📖</span> <span class="en">Interactive story</span><span class="zh">交互式讲解</span></a>
     <a class="btn primary" href="#lab"><span class="ic">🧪</span> <span class="en">Witness lab</span><span class="zh">见证实验室</span></a>
+    <a class="btn" href="LatentGauge_Poster.pdf"><span class="ic">🧾</span> <span class="en">Poster</span><span class="zh">海报</span></a>
+    <a class="btn" href="LatentGauge_Extended_Abstract.pdf"><span class="ic">📄</span> <span class="en">Extended Abstract (Proposal)</span><span class="zh">扩展摘要（研究提案）</span></a>
     <a class="btn" href="#bibtex"><span class="ic">❝</span> BibTeX</a>
   </div>
 
@@ -580,11 +582,17 @@ if(lgq==='zh'||(lgq!=='en'&&lgs==='zh')){document.body.classList.add('lang-zh');
       <p><span class="en">A long-form, scroll-driven explainer: world models, JEPA and SIGReg, LeWorldModel and temporal straightening, then the attack itself, its displacement budget, three exact negative controls and defense directions.</span><span class="zh">一份长篇滚动式讲解：从世界模型、JEPA 与 SIGReg、LeWorldModel 与时间拉直讲起，再到攻击本身、它的位移预算、三个精确负对照与防御方向。</span></p>
       <span class="meta"><span class="en">English / 中文 · canvas-driven</span><span class="zh">中文 / English · Canvas 驱动</span></span>
     </a>
-    <a class="door light" href="#lab">
-      <span class="arrow">↓</span>
-      <h3>🧪 <span class="en">The exact witness lab</span><span class="zh">精确见证实验室</span></h3>
-      <p><span class="en">Drag τ and watch the same two endpoints swap rank while the Gaussian law and the displacement budget hold. Every number is recomputed from the closed-form map in your browser.</span><span class="zh">拖动 τ，看同一对终点在高斯分布与位移预算都成立的情况下交换排序。所有数字都由闭式映射在浏览器中重新计算。</span></p>
-      <span class="meta"><span class="en">on this page · flip at τ* = 0.765739</span><span class="zh">就在本页 · τ* = 0.765739 处翻转</span></span>
+    <a class="door light" href="LatentGauge_Poster.pdf">
+      <span class="arrow">↗</span>
+      <h3>🧾 <span class="en">Poster</span><span class="zh">海报</span></h3>
+      <p><span class="en">One page: the blind spot, the shared measure-preserving map and how it is fitted, results on three protocol families, and the exact witness. QR codes lead to this page and the story.</span><span class="zh">一页纸讲清：盲区、共享测度保持映射及其拟合方式、三类协议上的结果，以及精确见证。二维码分别指向本页与交互式故事。</span></p>
+      <span class="meta"><span class="en">PDF · 48 × 36 in</span><span class="zh">PDF · 48 × 36 英寸</span></span>
+    </a>
+    <a class="door light" href="LatentGauge_Extended_Abstract.pdf">
+      <span class="arrow">↗</span>
+      <h3>📄 <span class="en">Extended Abstract (Proposal)</span><span class="zh">扩展摘要（研究提案）</span></h3>
+      <p><span class="en">The six-page proposal behind LatentGauge: the threat model, the induced planning metric, exact Gaussian-preserving attacks by divergence-free flow, and the evaluation plan.</span><span class="zh">LatentGauge 背后的六页研究提案：威胁模型、诱导出的规划度量、基于无散度流的精确高斯保持攻击，以及评估方案。</span></p>
+      <span class="meta"><span class="en">PDF · 6 pages</span><span class="zh">PDF · 6 页</span></span>
     </a>
   </div>
 </section>
