@@ -43,8 +43,6 @@ nav .links{display:flex;gap:14px;margin-left:auto;align-items:center;overflow-x:
 nav .links::-webkit-scrollbar{display:none}
 nav .links a{font-size:13.5px;color:var(--ink-2);text-decoration:none}
 nav .links a:hover{color:var(--accent-deep)}
-.langbtn{flex:none;border:1px solid var(--baseline);background:var(--surface);color:var(--ink);border-radius:14px;padding:2px 11px;font:600 12.5px var(--sans);cursor:pointer}
-.langbtn:hover{border-color:var(--accent);color:var(--accent-deep)}
 
 /* hero */
 header{padding:40px 0 8px;text-align:center}
@@ -256,10 +254,6 @@ footer a{color:var(--ink-2)}
 </style>
 </head>
 <body>
-<script>
-try{var lgq=new URLSearchParams(location.search).get('lang'),lgs=null;try{lgs=localStorage.getItem('lg-home-lang')}catch(e){}
-if(lgq==='zh'||(lgq!=='en'&&lgs==='zh')){document.body.classList.add('lang-zh');document.documentElement.lang='zh-CN'}}catch(e){}
-</script>
 
 <nav>
   <div class="wrap">
@@ -273,7 +267,6 @@ if(lgq==='zh'||(lgq!=='en'&&lgs==='zh')){document.body.classList.add('lang-zh');
       <a href="#explore"><span class="en">Deep dive</span><span class="zh">深入</span></a>
       <a href="#bibtex">BibTeX</a>
     </div>
-    <button class="langbtn" id="langBtn" type="button" aria-label="切换到中文">中文</button>
   </div>
 </nav>
 
@@ -580,7 +573,7 @@ if(lgq==='zh'||(lgq!=='en'&&lgs==='zh')){document.body.classList.add('lang-zh');
       <span class="arrow">↗</span>
       <h3>📖 <span class="en">LeWorldModel → LatentGauge: the interactive story</span><span class="zh">LeWorldModel → LatentGauge：交互式故事</span></h3>
       <p><span class="en">A long-form, scroll-driven explainer: world models, JEPA and SIGReg, LeWorldModel and temporal straightening, then the attack itself, its displacement budget, three exact negative controls and defense directions.</span><span class="zh">一份长篇滚动式讲解：从世界模型、JEPA 与 SIGReg、LeWorldModel 与时间拉直讲起，再到攻击本身、它的位移预算、三个精确负对照与防御方向。</span></p>
-      <span class="meta"><span class="en">English / 中文 · canvas-driven</span><span class="zh">中文 / English · Canvas 驱动</span></span>
+      <span class="meta"><span class="en">long-form · canvas-driven</span><span class="zh">长篇 · Canvas 驱动</span></span>
     </a>
     <a class="door light" href="LatentGauge_Poster.pdf">
       <span class="arrow">↗</span>
@@ -621,26 +614,9 @@ if(lgq==='zh'||(lgq!=='en'&&lgs==='zh')){document.body.classList.add('lang-zh');
 </footer>
 
 <script>
-/* ---------- language toggle ---------- */
-window.LGzh=function(){return document.body.classList.contains('lang-zh')};
-window.LGL=function(zh,en){return window.LGzh()?zh:en};
-(function(){
-  var btn=document.getElementById('langBtn');
-  function sync(){
-    var zh=window.LGzh();
-    document.documentElement.lang=zh?'zh-CN':'en';
-    btn.textContent=zh?'EN':'中文';
-    btn.setAttribute('aria-label',zh?'Switch to English':'切换到中文');
-  }
-  sync();
-  btn.addEventListener('click',function(){
-    var zh=!window.LGzh();
-    document.body.classList.toggle('lang-zh',zh);
-    try{localStorage.setItem('lg-home-lang',zh?'zh':'en')}catch(e){}
-    sync();
-    document.dispatchEvent(new CustomEvent('lg:lang'));
-  });
-})();
+/* ---------- language: English only ---------- */
+window.LGzh=function(){return false};
+window.LGL=function(zh,en){return en};
 
 /* ---------- exact canonical witness (paper appendix, eq. witness) ---------- */
 var LG=(function(){
