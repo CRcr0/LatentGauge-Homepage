@@ -1,6 +1,6 @@
-# LatentGauge — project homepage
+# LatentGauge: Planning-Geometry Attacks in a Measure-Preserving Blind Spot
 
-Public homepage for **LatentGauge: Planning-Geometry Attacks in a Measure-Preserving Blind Spot**.
+Project homepage for **LatentGauge: Planning-Geometry Attacks in a Measure-Preserving Blind Spot**. New York University · Cornell University · Massachusetts Institute of Technology · Brown University.
 
 Live site: <https://crcr0.github.io/LatentGauge-Homepage/>
 
